@@ -22,7 +22,7 @@ const Header: React.FC = () => {
                    style={{ color: 'var(--color-funev-white)' }}
                    onMouseEnter={(e) => handleLinkHover(e, true)}
                    onMouseLeave={(e) => handleLinkHover(e, false)}>
-                    Intranet FUNEV
+                    <img src="/logo-funev-branca.png" alt="Logo" className="h-18 inline-block mr-2" />
                 </a>
             </Link>
             <nav className="space-x-4">
