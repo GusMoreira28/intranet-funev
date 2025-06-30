@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-// CORRIGIDOS OS CAMINHOS: Agora são relativos à pasta 'app'
 import { wikiArticlesData, WikiArticle } from '../data/wikiArticles';
 import ArticleCard from '../components/ArticleCard';
 import SectionWrapper from '../components/SectionWrapper';
@@ -11,11 +10,23 @@ import SectionWrapper from '../components/SectionWrapper';
 export default function WikiPage() {
     const router = useRouter();
 
+    // Função auxiliar para gerenciar hover em botões
+    const handleButtonHover = (e: React.MouseEvent<HTMLButtonElement>, isHovering: boolean) => {
+        if (isHovering) {
+            e.currentTarget.style.backgroundColor = 'var(--color-funev-dark)';
+        } else {
+            e.currentTarget.style.backgroundColor = 'var(--color-funev-blue)';
+        }
+    };
+
     return (
-        <SectionWrapper title="Wiki Completa da FUNEV" titleColor="text-funevBlue">
+        <SectionWrapper title="Wiki Completa da FUNEV" titleColor="var(--color-funev-blue)">
             <button
-                onClick={() => router.push('/')} // Volta para a Home
-                className="mb-6 bg-funevGreen text-funevWhite px-6 py-3 rounded-md hover:bg-funevBlue transition duration-300 shadow-md"
+                onClick={() => router.push('/')}
+                className="mb-6 px-6 py-3 rounded-md shadow-md transition duration-300"
+                style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
+                onMouseEnter={(e) => handleButtonHover(e, true)}
+                onMouseLeave={(e) => handleButtonHover(e, false)}
             >
                 &larr; Voltar para a Home
             </button>
@@ -24,11 +35,11 @@ export default function WikiPage() {
                     <ArticleCard
                         key={article.id}
                         article={article}
-                        isSummary={false} // Exibe o resumo no card da lista completa da Wiki
+                        isSummary={false}
                     />
                 ))}
             </div>
-            <p className="text-center text-gray-700 mt-8">
+            <p className="text-center mt-8" style={{ color: 'var(--color-funev-dark)' }}>
                 Para adicionar ou editar artigos, entre em contato com o administrador da intranet.
             </p>
         </SectionWrapper>

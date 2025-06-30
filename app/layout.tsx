@@ -1,10 +1,9 @@
 // app/layout.tsx
 import React from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Importa a fonte Inter
-// CORRIGIDO O CAMINHO: Agora é relativo à pasta 'app', então './styles/globals.css'
+import { Inter } from 'next/font/google';
 import './globals.css';
-import Header from './components/Header'; // Caminho correto: dentro de app/components/
+import Header from './components/Header';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -20,12 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${inter.variable}`}>
-      <body>
+      <body className='flex flex-col min-h-screen'>
         <Header />
-        <main className="container mx-auto p-6 mt-8">
+        <main className="container mx-auto p-6 mt-8 flex-grow">
             {children}
         </main>
-        <footer className="bg-funevBlue p-6 text-funevWhite text-center text-sm rounded-t-lg mt-8">
+        <footer className="p-6 text-center text-sm mt-8"
+                style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}>
             <p>&copy; {new Date().getFullYear()} Intranet FUNEV. Todos os direitos reservados.</p>
         </footer>
       </body>

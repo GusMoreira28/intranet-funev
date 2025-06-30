@@ -8,11 +8,15 @@ interface BirthdayCardProps {
 
 const BirthdayCard: React.FC<BirthdayCardProps> = ({ person }) => {
     return (
-        <div className="flex items-center space-x-4 bg-funevWhite p-3 rounded-lg shadow-sm">
-            <div className="w-12 h-12 bg-funevBlue rounded-full flex items-center justify-center text-funevWhite font-bold text-xl">{person.photo}</div>
+        <div className="flex items-center space-x-4 p-3 rounded-lg shadow-sm"
+             style={{ backgroundColor: 'var(--color-funev-white)' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl"
+                 style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}>
+                {person.photo}
+            </div>
             <div>
-                <p className="font-semibold text-funevDark">{person.name}</p>
-                <p className="text-sm text-gray-600">{person.date}</p>
+                <p className="font-semibold" style={{ color: 'var(--color-funev-dark)' }}>{person.name}</p>
+                <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{person.date}</p>
             </div>
         </div>
     );
