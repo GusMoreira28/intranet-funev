@@ -1,103 +1,114 @@
-import Image from "next/image";
+// app/page.tsx
+'use client'; // Componentes que usam hooks precisam ser Client Components
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState } from 'react';
+import Link from 'next/link';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+// CORRIGIDOS OS CAMINHOS: Agora são relativos à pasta 'app'
+import { allBirthdays, Birthday } from './data/birthdays';
+import { allEvents, Event } from './data/events';
+import { usefulLinks, UsefulLink } from './data/links';
+import { wikiArticlesData, WikiArticle } from './data/wikiArticles';
+
+import Modal from './components/Modal';
+import SectionWrapper from './components/SectionWrapper';
+import ArticleCard from './components/ArticleCard';
+import LinkCard from './components/LinkCard';
+import BirthdayCard from './components/BirthdayCard';
+import EventCard from './components/EventCard';
+
+// Componentes de "páginas" completas, importados de app/components
+import WikiPage from './wiki/page';
+import LinksPage from './links/page';
+import BirthdaysPage from './birthdays/page';
+import CalendarPage from './calendar/page';
+import WikiArticlePage from './wiki/[slug]/page';
+
+
+export default function HomePage() {
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [modalType, setModalType] = useState<string>('');
+
+    const openModal = (type: string) => {
+        setModalType(type);
+        setShowModal(true);
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setModalType('');
+    };
+
+    return (
+        <>
+            {/* Seção Wiki (resumida na home) */}
+            <SectionWrapper id="wiki-home" title="Wiki Interna" titleColor="text-funevBlue" description="Bem-vindo à Wiki da FUNEV! Aqui você encontra informações importantes sobre processos, políticas e procedimentos internos.">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {wikiArticlesData.slice(0,3).map((article: WikiArticle) => (
+                        <ArticleCard
+                            key={article.id}
+                            article={article}
+                            isSummary={true}
+                        />
+                    ))}
+                </div>
+                <Link href="/wiki" passHref legacyBehavior>
+                    <a className="mt-6 bg-funevGreen text-funevWhite px-6 py-3 rounded-md hover:bg-funevBlue transition duration-300 shadow-md inline-block">
+                        Acessar Wiki Completa
+                    </a>
+                </Link>
+            </SectionWrapper>
+
+            {/* Seção de Links Úteis (resumida na home) */}
+            <SectionWrapper id="links-home" title="Links Úteis" titleColor="text-funevBlue">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {usefulLinks.slice(0, 4).map((link: UsefulLink, index: number) => (
+                        <LinkCard key={index} link={link} />
+                    ))}
+                </div>
+                <Link href="/links" passHref legacyBehavior>
+                    <a className="mt-6 bg-funevGreen text-funevWhite px-6 py-3 rounded-md hover:bg-funevBlue transition duration-300 shadow-md inline-block">
+                        Ver todos os Links
+                    </a>
+                </Link>
+            </SectionWrapper>
+
+            {/* Seção de Aniversariantes */}
+            <SectionWrapper id="birthdays" title="Aniversariantes do Mês" titleColor="text-funevBlue">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {allBirthdays.slice(0, 4).map((person: Birthday, index: number) => (
+                        <BirthdayCard key={index} person={person} />
+                    ))}
+                </div>
+                <button className="mt-6 bg-funevGreen text-funevWhite px-6 py-3 rounded-md hover:bg-funevBlue transition duration-300 shadow-md" onClick={() => openModal('birthdays')}>
+                    Ver todos os Aniversariantes (via Modal)
+                </button>
+            </SectionWrapper>
+
+            {/* Seção de Calendário de Eventos */}
+            <SectionWrapper id="calendar" title="Calendário de Eventos" titleColor="text-funevBlue">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {allEvents.slice(0, 3).map((event: Event, index: number) => (
+                        <EventCard key={index} event={event} />
+                    ))}
+                </div>
+                <button className="mt-6 bg-funevGreen text-funevWhite px-6 py-3 rounded-md hover:bg-funevBlue transition duration-300 shadow-md" onClick={() => openModal('events')}>
+                    Ver Calendário Completo (via Modal)
+                </button>
+            </SectionWrapper>
+
+            {/* Modal - permanece na página que gerencia seu estado */}
+            <Modal show={showModal} onClose={closeModal} title={modalType === 'birthdays' ? 'Todos os Aniversariantes' : 'Calendário Completo de Eventos'}>
+                {modalType === 'birthdays' ? (
+                    allBirthdays.map((person: Birthday, index: number) => (
+                        <BirthdayCard key={index} person={person} />
+                    ))
+                ) : (
+                    allEvents.map((event: Event, index: number) => (
+                        <EventCard key={index} event={event} />
+                    ))
+                )}
+            </Modal>
+        </>
+    );
 }
