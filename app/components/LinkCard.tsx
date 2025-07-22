@@ -1,6 +1,7 @@
 // app/components/LinkCard.tsx
 import React from 'react';
 import { UsefulLink } from '../data/links';
+import Link from 'next/link'; // Importa Link
 
 interface LinkCardProps {
     link: UsefulLink;
