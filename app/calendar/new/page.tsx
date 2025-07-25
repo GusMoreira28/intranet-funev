@@ -123,7 +123,7 @@ export default function NewEventPage() {
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-gray-700"
                                style={{ color: 'var(--color-funev-dark)' }}>
-                            Data (YYYY-MM-DD):
+                            Data:
                         </label>
                         <input
                             type="date"

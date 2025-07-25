@@ -60,7 +60,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchCurrentMonthBirthdays = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/colaborador');
+                const response = await fetch('http://172.16.0.25:8000/colaborador');
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }

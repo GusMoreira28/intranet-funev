@@ -43,11 +43,8 @@ export default function Header() {
                                 alt="Logo FUNEV"
                                 width={50}
                                 height={50}
-                                className="mr-3"
+                                className="mr-3 ml-6"
                             />
-                            <h1 className="text-2xl font-bold" style={{ color: 'var(--color-funev-white)' }}>
-                                Intranet FUNEV
-                            </h1>
                     </Link>
                 </div>
                 <nav>
