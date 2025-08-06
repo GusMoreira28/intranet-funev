@@ -48,7 +48,7 @@ export default function BirthdaysPage() {
         const fetchBirthdays = async () => {
             try {
                 // Endpoint da API
-                const response = await fetch('http://172.16.0.25:8000/colaborador');
+                const response = await fetch('http://localhost:8000/colaborador');
                 if (!response.ok) {
                     throw new Error('Erro ao buscar aniversariantes');
                 }
@@ -67,7 +67,8 @@ export default function BirthdaysPage() {
                         name: item.nome,
                         date: `${day} de ${capitalizedMonthName}`,
                         photo: getInitials(item.nome),
-                        month: capitalizedMonthName
+                        month: capitalizedMonthName,
+                        role: item.cargo || 'Cargo Indisponível'
                     };
                 });
                 

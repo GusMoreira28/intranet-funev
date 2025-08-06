@@ -92,7 +92,7 @@ export default function NewEventPage() {
     };
 
     return (
-        <SectionWrapper title="Adicionar Novo Evento" titleColor="var(--color-funev-blue)">
+        <SectionWrapper title="Adicionar Novo Evento" titleColor="var(--color-funev-blue)" >
             <button
                 onClick={() => router.push('/calendar')}
                 className="mb-6 px-6 py-3 rounded-md shadow-md transition duration-300"
@@ -103,12 +103,12 @@ export default function NewEventPage() {
                 &larr; Voltar para Eventos
             </button>
 
-            <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md"
-                 style={{ backgroundColor: 'var(--color-funev-light)', border: '1px solid var(--color-funev-green)' }}>
-                <form onSubmit={handleSubmit} className="space-y-4">
+            <div className=" mx-auto p-6 bg-white rounded-lg shadow-md"
+                style={{ backgroundColor: 'var(--color-funev-light)', border: '1px solid var(--color-funev-green)' }}>
+                <form onSubmit={handleSubmit} className="space-y-4 ">
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
+                            style={{ color: 'var(--color-funev-dark)' }}>
                             Título:
                         </label>
                         <input
@@ -120,49 +120,51 @@ export default function NewEventPage() {
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="date" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
-                            Data:
-                        </label>
-                        <input
-                            type="date"
-                            id="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="time" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
-                            Hora:
-                        </label>
-                        <input
-                            type="text"
-                            id="time"
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="location" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
-                            Local:
-                        </label>
-                        <input
-                            type="text"
-                            id="location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                        />
+                    <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
+                        <div>
+                            <label htmlFor="date" className="block text-sm font-medium text-gray-700"
+                                style={{ color: 'var(--color-funev-dark)' }}>
+                                Data:
+                            </label>
+                            <input
+                                type="date"
+                                id="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                required
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="time" className="block text-sm font-medium text-gray-700"
+                                style={{ color: 'var(--color-funev-dark)' }}>
+                                Hora:
+                            </label>
+                            <input
+                                type="text"
+                                id="time"
+                                value={time}
+                                onChange={(e) => setTime(e.target.value)}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="location" className="block text-sm font-medium text-gray-700"
+                                style={{ color: 'var(--color-funev-dark)' }}>
+                                Local:
+                            </label>
+                            <input
+                                type="text"
+                                id="location"
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="topic" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
+                            style={{ color: 'var(--color-funev-dark)' }}>
                             Tópico:
                         </label>
                         <textarea

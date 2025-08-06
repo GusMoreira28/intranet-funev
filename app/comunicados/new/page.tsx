@@ -1,4 +1,4 @@
-// app/links/new/page.tsx
+// app/comunicados/new/page.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -6,31 +6,30 @@ import { useRouter } from 'next/navigation';
 import SectionWrapper from '../../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../../auth';
 
-export default function NewLinkPage() {
+export default function NewAnnouncementPage() {
     const router = useRouter();
     const [title, setTitle] = useState('');
-    const [url, setUrl] = useState('');
-    const [selectedIcon, setSelectedIcon] = useState<File | null>(null); // Estado para o ficheiro do ícone
+    const [author, setAuthor] = useState('');
+    const [selectedImage, setSelectedImage] = useState<File | null>(null); // Estado para o ficheiro de imagem
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
-    const iconFileInputRef = useRef<HTMLInputElement>(null); // Ref para o input de arquivo do ícone
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref para o input de arquivo
 
     useEffect(() => {
-        // Redireciona se não estiver logado
         if (!isAuthenticated()) {
             router.push('/login');
         }
     }, [router]);
 
-    // Manipulador para o input de arquivo do ícone
-    const handleIconFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Manipulador para o input de arquivo
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
-            setSelectedIcon(event.target.files[0]);
+            setSelectedImage(event.target.files[0]);
             setError(null); // Limpa erro ao selecionar novo arquivo
         } else {
-            setSelectedIcon(null);
+            setSelectedImage(null);
         }
     };
 
@@ -40,7 +39,7 @@ export default function NewLinkPage() {
         setError(null);
         setSuccess(null);
 
-        const token = getToken(); // Obtém o token JWT do localStorage
+        const token = getToken();
         if (!token) {
             setError('Sessão expirada ou credenciais ausentes. Por favor, faça login novamente.');
             setLoading(false);
@@ -48,59 +47,62 @@ export default function NewLinkPage() {
             return;
         }
 
-        if (!selectedIcon) {
-            setError('Por favor, selecione uma imagem para o ícone do link.');
+        if (!selectedImage) {
+            setError('Por favor, selecione uma imagem para o comunicado.');
             setLoading(false);
             return;
         }
 
-        let uploadedIconId: number | null = null; // Para armazenar o ID do ícone carregado
+        const documentId = 'comunicado-' + Date.now(); // Gera um ID único simples para o documento
+        const currentDate = new Date().toISOString(); // Obtém a data atual no formato ISO
+        let uploadedFileId: number | null = null; // <<< NOVO: Para armazenar o ID do arquivo carregado
 
         try {
-            // --- 1. UPLOAD DA IMAGEM DO ÍCONE PARA A MEDIA LIBRARY DO STRAPI ---
-            const iconFormData = new FormData();
-            iconFormData.append('files', selectedIcon);
+            // --- 1. UPLOAD DA IMAGEM PARA A MEDIA LIBRARY DO STRAPI ---
+            const formData = new FormData();
+            formData.append('files', selectedImage);
 
-            console.log("Iniciando upload do ícone para Strapi...");
-            const uploadIconResponse = await fetch('http://localhost:1337/api/upload', {
+            console.log("Iniciando upload de imagem para Strapi...");
+            const uploadResponse = await fetch('http://localhost:1337/api/upload', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`, // Autentica o upload
                 },
-                body: iconFormData,
+                body: formData,
             });
 
-            if (!uploadIconResponse.ok) {
-                const errorText = await uploadIconResponse.text();
-                console.error('Upload de Ícone: Resposta de erro bruta:', errorText);
-                throw new Error(`Falha no upload do ícone: ${uploadIconResponse.status} ${uploadIconResponse.statusText}`);
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                console.error('Upload de Imagem: Resposta de erro bruta:', errorText);
+                throw new Error(`Falha no upload da imagem: ${uploadResponse.status} ${uploadResponse.statusText}`);
             }
 
-            const uploadIconData = await uploadIconResponse.json();
-            console.log("Dados de upload do ícone recebidos:", uploadIconData);
+            const uploadData = await uploadResponse.json();
+            console.log("Dados de upload da imagem recebidos:", uploadData);
 
-            if (uploadIconData && Array.isArray(uploadIconData) && uploadIconData[0] && typeof uploadIconData[0].id === 'number') {
-                uploadedIconId = uploadIconData[0].id; // Obtém o ID numérico do ícone carregado
-                console.log("ID do ícone carregado:", uploadedIconId);
+            if (uploadData && Array.isArray(uploadData) && uploadData[0] && typeof uploadData[0].id === 'number') {
+                uploadedFileId = uploadData[0].id; // <<< AQUI: Obtém o ID numérico do arquivo carregado
+                console.log("ID do arquivo carregado:", uploadedFileId);
             } else {
-                throw new Error('Upload de Ícone: Resposta inesperada do Strapi (ID do ícone não encontrado).');
+                throw new Error('Upload de Imagem: Resposta inesperada do Strapi (ID do arquivo não encontrado).');
             }
 
-            // --- 2. CRIAÇÃO DO LINK COM O ID DO ÍCONE ---
+            // --- 2. CRIAÇÃO DO COMUNICADO COM O ID DA IMAGEM ---
             const payload = {
-                data: { // Strapi espera os dados dentro de um objeto 'data'
+                data: {
                     title,
-                    url,
-                    icon: uploadedIconId, // O ícone agora é o ID do ficheiro de mídia
+                    content: uploadedFileId, // <<< AQUI: O conteúdo agora é o ID do arquivo de mídia
+                    author,
+                    date: currentDate,
                 },
             };
-            console.log("Payload enviado para o Strapi (Link):", payload);
+            console.log("Payload enviado para o Strapi (Comunicado):", payload);
 
-            const response = await fetch('http://localhost:1337/api/links', {
+            const response = await fetch('http://localhost:1337/api/announcements', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // Inclui o token JWT
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -110,25 +112,25 @@ export default function NewLinkPage() {
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('Credenciais inválidas ou permissão negada. Verifique seu login e permissões no Strapi.');
                 }
-                throw new Error(errorData.error?.message || `Falha ao adicionar link: ${response.statusText}`);
+                throw new Error(errorData.error?.message || `Falha ao adicionar comunicado: ${response.statusText}`);
             }
 
-            setSuccess('Link adicionado com sucesso!');
+            setSuccess('Comunicado adicionado com sucesso!');
             setTitle('');
-            setUrl('');
-            setSelectedIcon(null);
-            if (iconFileInputRef.current) {
-                iconFileInputRef.current.value = ''; // Limpa visualmente o input de arquivo
+            setAuthor('');
+            setSelectedImage(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
             }
-            router.push('/links'); // Redireciona para a lista de links após o sucesso
+            router.push('/comunicados');
 
         } catch (err) {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Ocorreu um erro desconhecido ao adicionar o link.');
+                setError('Ocorreu um erro desconhecido ao adicionar o comunicado.');
             }
-            console.error('Erro na submissão do link:', err);
+            console.error('Erro na submissão do comunicado:', err);
         } finally {
             setLoading(false);
         }
@@ -143,15 +145,15 @@ export default function NewLinkPage() {
     };
 
     return (
-        <SectionWrapper title="Adicionar Novo Link Útil" titleColor="var(--color-funev-blue)">
+        <SectionWrapper title="Adicionar Novo Comunicado" titleColor="var(--color-funev-blue)">
             <button
-                onClick={() => router.push('/links')}
+                onClick={() => router.push('/comunicados')}
                 className="mb-6 px-6 py-3 rounded-md shadow-md transition duration-300"
                 style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
                 onMouseEnter={(e) => handleButtonHover(e, true)}
                 onMouseLeave={(e) => handleButtonHover(e, false)}
             >
-                &larr; Voltar para Links
+                &larr; Voltar para Comunicados
             </button>
 
             <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md"
@@ -172,36 +174,36 @@ export default function NewLinkPage() {
                         />
                     </div>
                     <div>
-                        <label htmlFor="url" className="block text-sm font-medium text-gray-700"
+                        <label htmlFor="author" className="block text-sm font-medium text-gray-700"
                                style={{ color: 'var(--color-funev-dark)' }}>
-                            URL:
+                            Autor:
                         </label>
                         <input
-                            type="url"
-                            id="url"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
+                            type="text"
+                            id="author"
+                            value={author}
+                            onChange={(e) => setAuthor(e.target.value)}
                             required
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
                         />
                     </div>
                     <div>
-                        <label htmlFor="icon" className="block text-sm font-medium text-gray-700"
+                        <label htmlFor="content" className="block text-sm font-medium text-gray-700"
                                style={{ color: 'var(--color-funev-dark)' }}>
-                            Ícone do Link (Imagem):
+                            Imagem do Comunicado:
                         </label>
                         <input
                             type="file"
-                            id="icon"
-                            ref={iconFileInputRef}
-                            onChange={handleIconFileChange}
+                            id="content"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
                             accept="image/*"
                             required
                             className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-funev-green file:text-funev-white hover:file:bg-funev-blue"
                         />
-                        {selectedIcon && (
+                        {selectedImage && (
                             <p className="text-sm mt-2" style={{ color: 'var(--color-funev-dark)' }}>
-                                Ficheiro selecionado: {selectedIcon.name}
+                                Ficheiro selecionado: {selectedImage.name}
                             </p>
                         )}
                     </div>
@@ -215,7 +217,7 @@ export default function NewLinkPage() {
                         onMouseEnter={(e) => handleButtonHover(e, true)}
                         onMouseLeave={(e) => handleButtonHover(e, false)}
                     >
-                        {loading ? 'Adicionando...' : 'Adicionar Link'}
+                        {loading ? 'Adicionando...' : 'Adicionar Comunicado'}
                     </button>
                 </form>
             </div>

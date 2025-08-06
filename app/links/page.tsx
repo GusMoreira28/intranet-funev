@@ -27,20 +27,74 @@ export default function LinksPage() {
 
         const fetchLinks = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/links');
+                // CORREÇÃO: Adicionar populate=icon para incluir os dados da imagem
+                const response = await fetch('http://localhost:1337/api/links?populate=icon');
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
-                const transformedLinks: UsefulLink[] = rawData.data.map((item: any) => ({
-                    id: item.id,
-                    title: item.title,
-                    description: item.description,
-                    url: item.url,
-                }));
+                console.log("Dados brutos de Links do Strapi (Links Page):", rawData);
+                
+                // ADICIONE ESTE LOG para ver cada item individualmente
+                rawData.data?.forEach((item: any, index: number) => {
+                    console.log(`Link ${index} (Links Page):`, item);
+                    console.log(`Icon do Link ${index} (Links Page):`, item.icon);
+                });
+
+                // CORREÇÃO: Verificar se rawData.data é um array
+                if (!Array.isArray(rawData.data)) {
+                    console.error("rawData.data não é um array para links:", rawData.data);
+                    setError("Formato de dados de links inesperado.");
+                    setLoading(false);
+                    return;
+                }
+
+                const transformedLinks: UsefulLink[] = rawData.data.map((item: any) => {
+                    if (!item || typeof item.id === 'undefined') {
+                        console.warn("Item de link inválido ou sem atributos:", item);
+                        return null;
+                    }
+
+                    // CORREÇÃO: Log detalhado do processamento do ícone
+                    console.log('Processando item (Links Page):', item);
+                    console.log('Ícone original (Links Page):', item.icon);
+
+                    // CORREÇÃO: Extrair URL do ícone corretamente baseado na estrutura do Strapi v5
+                    let iconData = null;
+                    
+                    if (item.icon) {
+                        if (item.icon.url) {
+                            // Strapi v5 formato direto
+                            iconData = `http://localhost:1337${item.icon.url}`;
+                        } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
+                            // Strapi v4 formato
+                            iconData = `http://localhost:1337${item.icon.data.attributes.url}`;
+                        } else {
+                            // Se icon for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do ícone não reconhecida (Links Page):', item.icon);
+                        }
+                    }
+
+                    console.log('URL final do ícone (Links Page):', iconData);
+
+                    return {
+                        id: item.id,
+                        title: item.title || 'Título Indisponível',
+                        url: item.url || '#',
+                        icon: iconData, // Usar iconData processado corretamente
+                    };
+                }).filter(Boolean); // Remove itens null
+
+                console.log('Links transformados (Links Page):', transformedLinks);
                 setLinks(transformedLinks);
             } catch (err) {
-                if (err instanceof Error) { setError(err.message); console.error("Erro ao buscar links do Strapi:", err); } else { setError("Ocorreu um erro desconhecido ao buscar links do Strapi."); console.error("Erro desconhecido ao buscar links do Strapi:", err); }
+                if (err instanceof Error) { 
+                    setError(err.message); 
+                    console.error("Erro ao buscar links do Strapi:", err); 
+                } else { 
+                    setError("Ocorreu um erro desconhecido ao buscar links do Strapi."); 
+                    console.error("Erro desconhecido ao buscar links do Strapi:", err); 
+                }
             } finally {
                 setLoading(false);
             }

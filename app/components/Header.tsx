@@ -66,6 +66,14 @@ export default function Header() {
                             </Link>
                         </li>
                         <li>
+                            <Link href="/comunicados" className={`text-lg font-medium ${pathname === '/comunicados' ? 'underline' : ''}`}
+                                   style={{ color: 'var(--color-funev-white)' }}
+                                   onMouseEnter={(e) => handleAnchorHover(e, true)}
+                                   onMouseLeave={(e) => handleAnchorHover(e, false)}>
+                                    Comunicados
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/links"  className={`text-lg font-medium ${pathname === '/links' ? 'underline' : ''}`}
                                    style={{ color: 'var(--color-funev-white)' }}
                                    onMouseEnter={(e) => handleAnchorHover(e, true)}

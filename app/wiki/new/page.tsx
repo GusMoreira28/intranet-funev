@@ -198,7 +198,7 @@ export default function NewWikiArticlePage() {
                 &larr; Voltar para Wiki
             </button>
 
-            <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md"
+            <div className="mx-auto p-6 bg-white rounded-lg shadow-md"
                  style={{ backgroundColor: 'var(--color-funev-light)', border: '1px solid var(--color-funev-green)' }}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>

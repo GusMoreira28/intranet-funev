@@ -17,6 +17,7 @@ const BirthdayCard: React.FC<BirthdayCardProps> = ({ person }) => {
             <div>
                 <p className="font-semibold" style={{ color: 'var(--color-funev-dark)' }}>{person.name}</p>
                 <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{person.date}</p>
+                <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{person.role}</p>
             </div>
         </div>
     );

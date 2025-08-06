@@ -110,7 +110,7 @@ export default function WikiPage() {
                         <ArticleCard
                             key={article.documentId} // Usa o documentId para a key
                             article={article}
-                            isSummary={false}
+                            isSummary={true}
                         />
                     ))}
                 </div>
