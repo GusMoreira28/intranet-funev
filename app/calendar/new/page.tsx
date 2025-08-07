@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionWrapper from '../../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../../auth'; // Importa funções de autenticação
+import { buildStrapiUrl } from '@/app/config/api';
 
 export default function NewEventPage() {
     const router = useRouter();
@@ -38,7 +39,7 @@ export default function NewEventPage() {
         }
 
         try {
-            const response = await fetch('http://localhost:1337/api/events', {
+            const response = await fetch(buildStrapiUrl('/api/events'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

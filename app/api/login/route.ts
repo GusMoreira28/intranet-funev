@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     const AD_URL = process.env.AD_SERVER_URL || 'ldap://172.16.1.231:389'; // Usar LDAPS (porta 636) é CRUCIAL para segurança
     const AD_BASE_DN = process.env.AD_BASE_DN || 'DC=funev,DC=local'; // Exemplo: DC=dominio,DC=local
-    const STRAPI_API_URL = process.env.STRAPI_API_URL || 'http://localhost:1337/api'; // URL da sua API Strapi
+    const STRAPI_API_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337/api'; // URL da sua API Strapi
     const STRAPI_ADMIN_API_TOKEN = process.env.STRAPI_ADMIN_API_TOKEN; // Token de Admin do Strapi
     const STRAPI_DEFAULT_USER_PASSWORD = process.env.STRAPI_DEFAULT_USER_PASSWORD || 'defaultStrapiPass123!'; // Senha padrão no Strapi
 

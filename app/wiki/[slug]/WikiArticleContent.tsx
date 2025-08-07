@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { WikiArticle } from '../../data/wikiArticles';
 import SectionWrapper from '../../components/SectionWrapper';
+import { buildStrapiUrl } from '../../config/api';
 // import DOMPurify from 'dompurify'; // Para sanitização em produção: npm install dompurify
 
 interface WikiArticleContentProps {
@@ -27,7 +28,7 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
 
         const fetchArticle = async () => {
             try {
-                const response = await fetch(`http://localhost:1337/api/wiki-articles?filters[documentId][$eq]=${slug}`);
+                const response = await fetch(buildStrapiUrl(`/wiki-articles?filters[documentId][$eq]=${slug}`));
                 if (!response.ok) {
                     if (response.status === 404) {
                         setArticle(null);
@@ -138,3 +139,4 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
 }
 
 export default WikiArticleContent;
+

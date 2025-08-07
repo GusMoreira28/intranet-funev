@@ -7,6 +7,7 @@ import { Event } from '../data/events';
 import EventCard from '../components/EventCard';
 import SectionWrapper from '../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../auth'; // Importa funções de autenticação
+import { buildFastApiUrl } from '../config/api';
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -34,7 +35,7 @@ export default function CalendarPage() {
 
         const fetchEvents = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/events');
+                const response = await fetch(buildFastApiUrl('/events'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }

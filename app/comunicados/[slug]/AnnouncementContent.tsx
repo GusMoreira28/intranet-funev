@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Announcement } from '../../data/announcements';
 import SectionWrapper from '../../components/SectionWrapper';
 import Image from 'next/image'; // Importa Image
+import { buildStrapiUrl } from '@/app/config/api';
 
 interface AnnouncementContentProps {
     slug: string; // Recebe o slug (que é o documentId) como prop
@@ -27,7 +28,7 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
         const fetchAnnouncement = async () => {
             try {
                 // Busca um comunicado específico pelo documentId via filtro
-                const response = await fetch(`http://localhost:1337/api/announcements?populate=content&filters[documentId][$eq]=${slug}`);
+                const response = await fetch(buildStrapiUrl(`/api/announcements?populate=content&filters[documentId][$eq]=${slug}`));
                 if (!response.ok) {
                     if (response.status === 404) {
                         setAnnouncement(null);

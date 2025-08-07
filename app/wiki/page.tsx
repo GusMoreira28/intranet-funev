@@ -8,6 +8,7 @@ import { WikiArticle } from '../data/wikiArticles';
 import ArticleCard from '../components/ArticleCard';
 import SectionWrapper from '../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../auth';
+import { buildStrapiUrl } from '../config/api';
 
 export default function WikiPage() {
     const router = useRouter();
@@ -20,7 +21,7 @@ export default function WikiPage() {
         setIsLoggedIn(isAuthenticated());
         const fetchWikiArticles = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/wiki-articles'); // Endpoint do Strapi para Wiki
+                const response = await fetch(buildStrapiUrl('/wiki-articles')); // Endpoint do Strapi para Wiki
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }

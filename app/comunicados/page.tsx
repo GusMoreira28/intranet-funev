@@ -8,6 +8,7 @@ import { Announcement } from '../data/announcements';
 import AnnouncementCard from '../components/AnnouncementCard';
 import SectionWrapper from '../components/SectionWrapper';
 import { isAuthenticated } from '../auth'; // Para botão de adicionar
+import { buildStrapiUrl } from '../config/api';
 
 export default function AnnouncementsPage() {
     const router = useRouter();
@@ -20,7 +21,7 @@ export default function AnnouncementsPage() {
         setIsLoggedIn(isAuthenticated());
         const fetchAnnouncements = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/announcements?populate=content');
+                const response = await fetch(buildStrapiUrl('/api/announcements?populate=content'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }

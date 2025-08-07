@@ -11,6 +11,9 @@ import { Announcement } from './data/announcements';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getToken } from './auth';
 
+// Import da configuração de API
+import { buildFastApiUrl, buildStrapiUrl, API_CONFIG } from './config/api';
+
 import SectionWrapper from './components/SectionWrapper';
 import ArticleCard from './components/ArticleCard';
 import LinkCard from './components/LinkCard';
@@ -77,7 +80,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchBirthdaysData = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/colaborador');
+                const response = await fetch(buildFastApiUrl('/colaborador'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -138,7 +141,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchCurrentMonthEvents = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/events'); // Endpoint do Strapi para eventos
+                const response = await fetch(buildStrapiUrl('/events')); // Endpoint do Strapi para eventos
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -183,7 +186,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchWikiArticles = async () => {
             try {
-                const response = await fetch('http://localhost:1337/api/wiki-articles'); // Endpoint do Strapi para Wiki
+                const response = await fetch(buildStrapiUrl('/wiki-articles')); // Endpoint do Strapi para Wiki
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -235,7 +238,7 @@ export default function HomePage() {
         const fetchLinks = async () => {
             try {
                 // CORREÇÃO: Adicionar populate=icon para incluir os dados da imagem
-                const response = await fetch('http://localhost:1337/api/links?populate=icon');
+                const response = await fetch(buildStrapiUrl('/links?populate=icon'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -271,10 +274,10 @@ export default function HomePage() {
                     if (item.icon) {
                         if (item.icon.url) {
                             // Strapi v5 formato direto
-                            iconData = `http://localhost:1337${item.icon.url}`;
+                            iconData = `${API_CONFIG.strapi}${item.icon.url}`;
                         } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
                             // Strapi v4 formato
-                            iconData = `http://localhost:1337${item.icon.data.attributes.url}`;
+                            iconData = `${API_CONFIG.strapi}${item.icon.data.attributes.url}`;
                         } else {
                             // Se icon for um objeto complexo, vamos logar para debug
                             console.log('Estrutura do ícone não reconhecida:', item.icon);
@@ -314,7 +317,7 @@ export default function HomePage() {
         const fetchAnnouncements = async () => {
             try {
                 // Adicionado populate=content para incluir os dados da imagem
-                const response = await fetch('http://localhost:1337/api/announcements?populate=content');
+                const response = await fetch(buildStrapiUrl('/announcements?populate=content'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }

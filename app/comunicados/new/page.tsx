@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionWrapper from '../../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../../auth';
+import { buildStrapiUrl } from '@/app/config/api';
 
 export default function NewAnnouncementPage() {
     const router = useRouter();
@@ -98,7 +99,7 @@ export default function NewAnnouncementPage() {
             };
             console.log("Payload enviado para o Strapi (Comunicado):", payload);
 
-            const response = await fetch('http://localhost:1337/api/announcements', {
+            const response = await fetch(buildStrapiUrl('/api/announcements'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

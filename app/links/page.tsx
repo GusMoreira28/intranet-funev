@@ -8,6 +8,7 @@ import LinkCard from '../components/LinkCard';
 import SectionWrapper from '../components/SectionWrapper';
 // Importa isAuthenticated E getToken. O warning (6133) sobre getToken não lido é esperado se não for usado.
 import { isAuthenticated, getToken } from '../auth'; 
+import { buildStrapiUrl } from '../config/api';
 
 export default function LinksPage() {
     const router = useRouter();
@@ -28,7 +29,7 @@ export default function LinksPage() {
         const fetchLinks = async () => {
             try {
                 // CORREÇÃO: Adicionar populate=icon para incluir os dados da imagem
-                const response = await fetch('http://localhost:1337/api/links?populate=icon');
+                const response = await fetch(buildStrapiUrl('/api/links?populate=icon'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -65,10 +66,10 @@ export default function LinksPage() {
                     if (item.icon) {
                         if (item.icon.url) {
                             // Strapi v5 formato direto
-                            iconData = `http://localhost:1337${item.icon.url}`;
+                            iconData = buildStrapiUrl(item.icon.url);
                         } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
                             // Strapi v4 formato
-                            iconData = `http://localhost:1337${item.icon.data.attributes.url}`;
+                            iconData = buildStrapiUrl(item.icon.data.attributes.url);
                         } else {
                             // Se icon for um objeto complexo, vamos logar para debug
                             console.log('Estrutura do ícone não reconhecida (Links Page):', item.icon);

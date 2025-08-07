@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Birthday, RawApiBirthday } from '../data/birthdays';
 import BirthdayCard from '../components/BirthdayCard';
 import SectionWrapper from '../components/SectionWrapper';
+import { buildFastApiUrl } from '../config/api';
 
 export default function BirthdaysPage() {
     const router = useRouter();
@@ -48,7 +49,7 @@ export default function BirthdaysPage() {
         const fetchBirthdays = async () => {
             try {
                 // Endpoint da API
-                const response = await fetch('http://localhost:8000/colaborador');
+                const response = await fetch(buildFastApiUrl('/colaborador'));
                 if (!response.ok) {
                     throw new Error('Erro ao buscar aniversariantes');
                 }

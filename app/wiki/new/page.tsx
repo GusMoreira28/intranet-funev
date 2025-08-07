@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 // Importa os tipos do CKEditor para uso no código
 import { CKEditor as CKEditorComponent } from '@ckeditor/ckeditor5-react';
 import { EditorConfig } from '@ckeditor/ckeditor5-core'; // Para tipagem do config
+import { buildStrapiUrl } from '@/app/config/api';
 
 // Carrega o componente CKEditor dinamicamente e desabilita SSR.
 // O ClassicEditor será importado *dentro* do `then` para garantir que só ocorra no cliente.
@@ -75,7 +76,7 @@ export default function NewWikiArticlePage() {
                     }
 
                     console.log('MyCustomUploadAdapter: Tentando upload para Strapi...');
-                    fetch('http://localhost:1337/api/upload', { // Endpoint de upload do Strapi
+                    fetch(buildStrapiUrl('/api/upload'), { // Endpoint de upload do Strapi
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`, // Inclui o token JWT
@@ -95,7 +96,7 @@ export default function NewWikiArticlePage() {
                     .then(data => {
                         if (data && Array.isArray(data) && data[0] && data[0].url) {
                             resolve({
-                                default: `http://localhost:1337${data[0].url}` // URL completa da imagem hospedada pelo Strapi
+                                default: `${buildStrapiUrl(data[0].url)}` // URL completa da imagem hospedada pelo Strapi
                             });
                         } else {
                             reject('Falha no upload da imagem para o Strapi: Resposta inesperada.');
@@ -137,7 +138,7 @@ export default function NewWikiArticlePage() {
         }
 
         try {
-            const response = await fetch('http://localhost:1337/api/wiki-articles', {
+            const response = await fetch(buildStrapiUrl('/wiki-articles'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

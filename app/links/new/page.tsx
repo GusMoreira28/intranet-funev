@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionWrapper from '../../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../../auth';
+import { buildStrapiUrl } from '@/app/config/api';
 
 export default function NewLinkPage() {
     const router = useRouter();
@@ -62,7 +63,7 @@ export default function NewLinkPage() {
             iconFormData.append('files', selectedIcon);
 
             console.log("Iniciando upload do ícone para Strapi...");
-            const uploadIconResponse = await fetch('http://localhost:1337/api/upload', {
+            const uploadIconResponse = await fetch(buildStrapiUrl('/api/upload'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`, // Autentica o upload
@@ -96,7 +97,7 @@ export default function NewLinkPage() {
             };
             console.log("Payload enviado para o Strapi (Link):", payload);
 
-            const response = await fetch('http://localhost:1337/api/links', {
+            const response = await fetch(buildStrapiUrl('/api/links'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
