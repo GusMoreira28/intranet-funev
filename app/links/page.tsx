@@ -7,8 +7,8 @@ import { UsefulLink } from '../data/links';
 import LinkCard from '../components/LinkCard';
 import SectionWrapper from '../components/SectionWrapper';
 // Importa isAuthenticated E getToken. O warning (6133) sobre getToken não lido é esperado se não for usado.
-import { isAuthenticated, getToken } from '../auth'; 
-import { buildStrapiUrl } from '../config/api';
+import { isAuthenticated, getToken } from '../auth';
+import { buildStrapiUrl, API_CONFIG } from '../config/api';
 
 export default function LinksPage() {
     const router = useRouter();
@@ -18,25 +18,17 @@ export default function LinksPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        setIsLoggedIn(isAuthenticated()); // Verifica o status de login ao carregar
-        
-        // Exemplo de como getToken PODE ser usado, o que removeria o warning.
-        // const token = getToken();
-        // if (token) {
-        //     console.log('Token de autenticação:', token);
-        // }
-
+        setIsLoggedIn(isAuthenticated()); 
         const fetchLinks = async () => {
             try {
-                // CORREÇÃO: Adicionar populate=icon para incluir os dados da imagem
-                const response = await fetch(buildStrapiUrl('/api/links?populate=icon'));
+
+                const response = await fetch(buildStrapiUrl('/links?populate=icon'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
                 console.log("Dados brutos de Links do Strapi (Links Page):", rawData);
-                
-                // ADICIONE ESTE LOG para ver cada item individualmente
+
                 rawData.data?.forEach((item: any, index: number) => {
                     console.log(`Link ${index} (Links Page):`, item);
                     console.log(`Icon do Link ${index} (Links Page):`, item.icon);
@@ -62,14 +54,14 @@ export default function LinksPage() {
 
                     // CORREÇÃO: Extrair URL do ícone corretamente baseado na estrutura do Strapi v5
                     let iconData = null;
-                    
+
                     if (item.icon) {
                         if (item.icon.url) {
                             // Strapi v5 formato direto
-                            iconData = buildStrapiUrl(item.icon.url);
+                            iconData = `${API_CONFIG.strapi}${item.icon.url}`;
                         } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
                             // Strapi v4 formato
-                            iconData = buildStrapiUrl(item.icon.data.attributes.url);
+                            iconData = `${API_CONFIG.strapi}${item.icon.data.attributes.url}`;
                         } else {
                             // Se icon for um objeto complexo, vamos logar para debug
                             console.log('Estrutura do ícone não reconhecida (Links Page):', item.icon);
@@ -87,14 +79,14 @@ export default function LinksPage() {
                 }).filter(Boolean); // Remove itens null
 
                 console.log('Links transformados (Links Page):', transformedLinks);
-                setLinks(transformedLinks);
+                setLinks(transformedLinks.slice(0, 4));
             } catch (err) {
-                if (err instanceof Error) { 
-                    setError(err.message); 
-                    console.error("Erro ao buscar links do Strapi:", err); 
-                } else { 
-                    setError("Ocorreu um erro desconhecido ao buscar links do Strapi."); 
-                    console.error("Erro desconhecido ao buscar links do Strapi:", err); 
+                if (err instanceof Error) {
+                    setError(err.message);
+                    console.error("Erro ao buscar links do Strapi:", err);
+                } else {
+                    setError("Ocorreu um erro desconhecido ao buscar links do Strapi.");
+                    console.error("Erro desconhecido ao buscar links do Strapi:", err);
                 }
             } finally {
                 setLoading(false);

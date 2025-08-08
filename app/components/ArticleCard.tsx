@@ -29,7 +29,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, isSummary = false })
             ) : (
                 <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{article.content.substring(0, 150)}...</p>
             )}
-            {/* Link para artigo: Mantém <a> para estilos e eventos de mouse */}
             <Link href={articleHref} className="hover:underline text-sm mt-2 block text-left transition duration-300"
                    style={{ color: 'var(--color-funev-dark)' }}
                    onMouseEnter={(e) => handleLinkHover(e, true)}

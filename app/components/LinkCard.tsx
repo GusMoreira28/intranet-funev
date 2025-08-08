@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UsefulLink } from '../data/links';
 import Link from 'next/link';
 import Image from 'next/image';
+import { buildStrapiUrl } from '../config/api';
 
 interface LinkCardProps {
     link: UsefulLink;
@@ -22,7 +23,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link }) => {
             // Se for um objeto com propriedade url
             imageUrl = link.icon.url.startsWith('http') 
                 ? link.icon.url 
-                : `http://172.16.0.23:1337${link.icon.url}`; // Use o IP correto aqui
+                : buildStrapiUrl(link.icon.url); // Use o IP correto aqui
         }
     }
 
@@ -51,7 +52,6 @@ const LinkCard: React.FC<LinkCardProps> = ({ link }) => {
                         style={{ objectFit: 'contain' }}
                         className="rounded-md"
                         onError={handleImageError}
-                        unoptimized={true} // IMPORTANTE: Desabilita a otimização do Next.js
                     />
                 </div>
             ) : (

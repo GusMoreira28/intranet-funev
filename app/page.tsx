@@ -244,7 +244,7 @@ export default function HomePage() {
                 }
                 const rawData = await response.json();
                 console.log("Dados brutos de Links do Strapi (Home):", rawData);
-                
+
                 // ADICIONE ESTE LOG para ver cada item individualmente
                 rawData.data?.forEach((item: any, index: number) => {
                     console.log(`Link ${index}:`, item);
@@ -270,7 +270,7 @@ export default function HomePage() {
 
                     // CORREÇÃO: Extrair URL do ícone corretamente baseado na estrutura do Strapi v5
                     let iconData = null;
-                    
+
                     if (item.icon) {
                         if (item.icon.url) {
                             // Strapi v5 formato direto
@@ -297,12 +297,12 @@ export default function HomePage() {
                 console.log('Links transformados:', transformedLinks);
                 setHomeLinks(transformedLinks.slice(0, 4));
             } catch (err) {
-                if (err instanceof Error) { 
-                    setErrorLinks(err.message); 
-                    console.error("Erro ao buscar links do Strapi:", err); 
-                } else { 
-                    setErrorLinks("Ocorreu um erro desconhecido ao buscar links do Strapi."); 
-                    console.error("Erro desconhecido ao buscar links do Strapi:", err); 
+                if (err instanceof Error) {
+                    setErrorLinks(err.message);
+                    console.error("Erro ao buscar links do Strapi:", err);
+                } else {
+                    setErrorLinks("Ocorreu um erro desconhecido ao buscar links do Strapi.");
+                    console.error("Erro desconhecido ao buscar links do Strapi:", err);
                 }
             } finally {
                 setLoadingLinks(false);
@@ -314,15 +314,15 @@ export default function HomePage() {
 
     // Efeito para buscar Comunicados Oficiais na Home do Strapi
     useEffect(() => {
+        setIsLoggedIn(isAuthenticated());
         const fetchAnnouncements = async () => {
             try {
-                // Adicionado populate=content para incluir os dados da imagem
                 const response = await fetch(buildStrapiUrl('/announcements?populate=content'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
-                console.log("Dados brutos de Comunicados do Strapi (Home):", rawData);
+                console.log("Dados brutos de Comunicados do Strapi (Lista):", rawData);
 
                 if (!Array.isArray(rawData.data)) {
                     console.error("rawData.data não é um array para comunicados:", rawData.data);
@@ -330,35 +330,49 @@ export default function HomePage() {
                     setLoadingAnnouncements(false);
                     return;
                 }
-                if (rawData.data.length === 0) {
-                    console.warn("Nenhum comunicado retornado pelo Strapi (Home).");
-                }
 
                 const transformedAnnouncements: Announcement[] = rawData.data.map((item: any) => {
                     if (!item || typeof item.id === 'undefined') {
                         console.warn("Item de comunicado inválido ou sem ID:", item);
                         return null;
                     }
+
+                    let contentData = null;
+
+                    if (item.content) {
+                        if (item.content.url) {
+                            // Strapi v5 formato direto
+                            contentData = `${API_CONFIG.strapi}${item.content.url}`;
+                        } else if (item.content.data && item.content.data.attributes && item.content.data.attributes.url) {
+                            // Strapi v4 formato
+                            contentData = `${API_CONFIG.strapi}${item.content.data.attributes.url}`;
+                        } else {
+                            // Se content for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do conteúdo não reconhecida (Comunicados Page):', item.content);
+                        }
+                    }
+
+                    console.log('URL final do conteúdo (Comunicados Page):', contentData);
+                    // Mapeamento direto dos campos
                     return {
                         id: item.id.toString(),
                         documentId: item.documentId || item.id.toString(),
                         title: item.title || 'Título Indisponível',
-                        content: item.content || null, // <<< Mapeia o objeto de mídia diretamente
+                        content: contentData || null, // <<< content agora é o objeto de mídia
                         author: item.author || 'Autor Desconhecido',
                         date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
                     };
                 }).filter(Boolean);
 
-                setHomeAnnouncements(transformedAnnouncements.slice(0, 3));
+                setHomeAnnouncements(transformedAnnouncements);
             } catch (err) {
-                if (err instanceof Error) { setErrorAnnouncements(err.message); console.error("Erro ao buscar comunicados do Strapi:", err); } else { setErrorAnnouncements("Ocorreu um erro desconhecido ao buscar comunicados."); console.error("Erro desconhecido ao buscar comunicados:", err); }
+                if (err instanceof Error) { setError(err.message); console.error("Erro ao buscar comunicados:", err); } else { setError("Ocorreu um erro desconhecido ao buscar comunicados."); console.error("Erro desconhecido ao buscar comunicados:", err); }
             } finally {
                 setLoadingAnnouncements(false);
             }
         };
         fetchAnnouncements();
     }, []);
-
 
     const handleButtonHover = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>, isHovering: boolean) => {
         if (isHovering) {
@@ -596,4 +610,8 @@ export default function HomePage() {
             </Modal>
         </>
     );
+}
+
+function setError(arg0: string) {
+    throw new Error('Function not implemented.');
 }

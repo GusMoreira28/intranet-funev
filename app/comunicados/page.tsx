@@ -8,7 +8,7 @@ import { Announcement } from '../data/announcements';
 import AnnouncementCard from '../components/AnnouncementCard';
 import SectionWrapper from '../components/SectionWrapper';
 import { isAuthenticated } from '../auth'; // Para botão de adicionar
-import { buildStrapiUrl } from '../config/api';
+import { buildStrapiUrl, API_CONFIG } from '../config/api';
 
 export default function AnnouncementsPage() {
     const router = useRouter();
@@ -21,7 +21,7 @@ export default function AnnouncementsPage() {
         setIsLoggedIn(isAuthenticated());
         const fetchAnnouncements = async () => {
             try {
-                const response = await fetch(buildStrapiUrl('/api/announcements?populate=content'));
+                const response = await fetch(buildStrapiUrl('/announcements?populate=content'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -40,12 +40,29 @@ export default function AnnouncementsPage() {
                         console.warn("Item de comunicado inválido ou sem ID:", item);
                         return null;
                     }
+
+                    let contentData = null;
+
+                    if (item.content) {
+                        if (item.content.url) {
+                            // Strapi v5 formato direto
+                            contentData = `${API_CONFIG.strapi}${item.content.url}`;
+                        } else if (item.content.data && item.content.data.attributes && item.content.data.attributes.url) {
+                            // Strapi v4 formato
+                            contentData = `${API_CONFIG.strapi}${item.content.data.attributes.url}`;
+                        } else {
+                            // Se content for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do conteúdo não reconhecida (Comunicados Page):', item.content);
+                        }
+                    }
+
+                    console.log('URL final do conteúdo (Comunicados Page):', contentData);
                     // Mapeamento direto dos campos
                     return {
                         id: item.id.toString(),
                         documentId: item.documentId || item.id.toString(),
                         title: item.title || 'Título Indisponível',
-                        content: item.content || null, // <<< content agora é o objeto de mídia
+                        content: contentData || null, // <<< content agora é o objeto de mídia
                         author: item.author || 'Autor Desconhecido',
                         date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
                     };
@@ -83,10 +100,10 @@ export default function AnnouncementsPage() {
                 </button>
                 {isLoggedIn && (
                     <Link href="/comunicados/new" className="px-6 py-3 rounded-md shadow-md transition duration-300"
-                           style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                           onMouseEnter={(e) => handleButtonHover(e, true)}
-                           onMouseLeave={(e) => handleButtonHover(e, false)}>
-                            + Adicionar Novo Comunicado
+                        style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
+                        onMouseEnter={(e) => handleButtonHover(e, true)}
+                        onMouseLeave={(e) => handleButtonHover(e, false)}>
+                        + Adicionar Novo Comunicado
                     </Link>
                 )}
             </div>

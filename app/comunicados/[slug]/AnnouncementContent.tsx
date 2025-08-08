@@ -28,7 +28,7 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
         const fetchAnnouncement = async () => {
             try {
                 // Busca um comunicado específico pelo documentId via filtro
-                const response = await fetch(buildStrapiUrl(`/api/announcements?populate=content&filters[documentId][$eq]=${slug}`));
+                const response = await fetch(buildStrapiUrl(`/announcements?populate=content&filters[documentId][$eq]=${slug}`));
                 if (!response.ok) {
                     if (response.status === 404) {
                         setAnnouncement(null);
@@ -88,7 +88,7 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
                 <button
                     onClick={() => router.push('/comunicados')}
                     className="mt-6 px-6 py-3 rounded-md shadow-md transition duration-300"
-                    style={{ backgroundColor: 'var(--color-funev-green)', color: 'var(--color-funev-white)' }}
+                    style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
                     onMouseEnter={(e) => handleButtonHover(e, true)}
                     onMouseLeave={(e) => handleButtonHover(e, false)}
                 >
@@ -105,7 +105,7 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
                 <button
                     onClick={() => router.push('/comunicados')}
                     className="mt-6 px-6 py-3 rounded-md shadow-md transition duration-300"
-                    style={{ backgroundColor: 'var(--color-funev-green)', color: 'var(--color-funev-white)' }}
+                    style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
                     onMouseEnter={(e) => handleButtonHover(e, true)}
                     onMouseLeave={(e) => handleButtonHover(e, false)}
                 >
