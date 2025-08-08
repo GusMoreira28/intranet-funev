@@ -96,8 +96,8 @@ export async function POST(request: Request) {
                     res.on('searchEntry', (entry) => {
                         if (entry.attributes && entry.attributes.length > 0) {
                             const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
-                            if (memberOfAttr && memberOfAttr.vals) {
-                                userGroups = Array.isArray(memberOfAttr.vals) ? memberOfAttr.vals : [memberOfAttr.vals];
+                            if (memberOfAttr && memberOfAttr.values) {
+                                userGroups = Array.isArray(memberOfAttr.values) ? memberOfAttr.values : [memberOfAttr.values];
                             }
                         }
                     });
