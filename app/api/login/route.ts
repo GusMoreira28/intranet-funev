@@ -72,73 +72,73 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'Usuário ou senha inválidos no Active Directory.' }, { status: 401 });
         }
 
-        // --- 2. VERIFICAÇÃO DE GRUPO NO ACTIVE DIRECTORY ---
-        const isUserInRequiredGroup = (): Promise<boolean> => {
-            return new Promise((resolve, reject) => {
-                if (!ldapClient) {
-                    reject(new Error('Cliente LDAP não inicializado para busca de grupo.'));
-                    return;
-                }
+        // // --- 2. VERIFICAÇÃO DE GRUPO NO ACTIVE DIRECTORY ---
+        // const isUserInRequiredGroup = (): Promise<boolean> => {
+        //     return new Promise((resolve, reject) => {
+        //         if (!ldapClient) {
+        //             reject(new Error('Cliente LDAP não inicializado para busca de grupo.'));
+        //             return;
+        //         }
 
-                const opts = {
-                    filter: `(userPrincipalName=${userPrincipalName})`, // Busca o usuário pelo UPN
-                    scope: 'sub' as const, // Busca em sub-árvores
-                    attributes: ['memberOf'], // Pede o atributo memberOf
-                };
+        //         const opts = {
+        //             filter: `(userPrincipalName=${userPrincipalName})`, // Busca o usuário pelo UPN
+        //             scope: 'sub' as const, // Busca em sub-árvores
+        //             attributes: ['memberOf'], // Pede o atributo memberOf
+        //         };
 
-                let userGroups: string[] = [];
-                ldapClient.search(AD_BASE_DN, opts, (err, res) => {
-                    if (err) {
-                        console.error(`LDAP Search Error for user ${username} groups:`, err);
-                        reject(new Error(`Erro ao buscar grupos do AD: ${err.message || err.name}`));
-                        return;
-                    }
+        //         let userGroups: string[] = [];
+        //         ldapClient.search(AD_BASE_DN, opts, (err, res) => {
+        //             if (err) {
+        //                 console.error(`LDAP Search Error for user ${username} groups:`, err);
+        //                 reject(new Error(`Erro ao buscar grupos do AD: ${err.message || err.name}`));
+        //                 return;
+        //             }
 
-                    res.on('searchEntry', (entry) => {
-                        if (entry.attributes && entry.attributes.length > 0) {
-                            const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
-                            if (memberOfAttr && memberOfAttr.vals) {
-                                userGroups = Array.isArray(memberOfAttr.vals) ? memberOfAttr.vals : [memberOfAttr.vals];
-                            }
-                        }
-                    });
+        //             res.on('searchEntry', (entry) => {
+        //                 if (entry.attributes && entry.attributes.length > 0) {
+        //                     const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
+        //                     if (memberOfAttr && memberOfAttr.vals) {
+        //                         userGroups = Array.isArray(memberOfAttr.vals) ? memberOfAttr.vals : [memberOfAttr.vals];
+        //                     }
+        //                 }
+        //             });
 
-                    res.on('error', (err) => {
-                        console.error(`LDAP Search Stream Error for user ${username} groups:`, err);
-                        reject(new Error(`Erro no stream de busca LDAP: ${err.message || err.name}`));
-                    });
+        //             res.on('error', (err) => {
+        //                 console.error(`LDAP Search Stream Error for user ${username} groups:`, err);
+        //                 reject(new Error(`Erro no stream de busca LDAP: ${err.message || err.name}`));
+        //             });
 
-                    res.on('end', (result) => {
-                        if (!result || result.status !== 0) {
-                            console.error(`LDAP Search non-zero status for user ${username} groups:`, result);
-                            reject(new Error(`Busca de grupo LDAP finalizada com status ${result?.status}`));
-                            return;
-                        }
+        //             res.on('end', (result) => {
+        //                 if (!result || result.status !== 0) {
+        //                     console.error(`LDAP Search non-zero status for user ${username} groups:`, result);
+        //                     reject(new Error(`Busca de grupo LDAP finalizada com status ${result?.status}`));
+        //                     return;
+        //                 }
 
-                        // Verifica se o usuário é membro do grupo necessário
-                        const isMember = userGroups.some(groupDn => {
-                            // O groupDn será algo como "CN=SeuGrupoDeTI,OU=Grupos,DC=suaempresa,DC=com"
-                            // Precisamos extrair o nome do grupo e comparar com AD_REQUIRED_GROUP_NAME
-                            const match = groupDn.match(/CN=([^,]+)/i);
-                            const groupName = match ? match[1] : '';
-                            return AD_REQUIRED_GROUP_NAME
-                                ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
-                                : false;
-                        });
+        //                 // Verifica se o usuário é membro do grupo necessário
+        //                 const isMember = userGroups.some(groupDn => {
+        //                     // O groupDn será algo como "CN=SeuGrupoDeTI,OU=Grupos,DC=suaempresa,DC=com"
+        //                     // Precisamos extrair o nome do grupo e comparar com AD_REQUIRED_GROUP_NAME
+        //                     const match = groupDn.match(/CN=([^,]+)/i);
+        //                     const groupName = match ? match[1] : '';
+        //                     return AD_REQUIRED_GROUP_NAME
+        //                         ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
+        //                         : false;
+        //                 });
 
-                        console.log(`Usuário ${username} é membro dos grupos:`, userGroups);
-                        console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
-                        resolve(isMember);
-                    });
-                });
-            });
-        };
+        //                 console.log(`Usuário ${username} é membro dos grupos:`, userGroups);
+        //                 console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
+        //                 resolve(isMember);
+        //             });
+        //         });
+        //     });
+        // };
 
-        const isMemberOfRequiredGroup = await isUserInRequiredGroup();
+        // const isMemberOfRequiredGroup = await isUserInRequiredGroup();
 
-        if (!isMemberOfRequiredGroup) {
-            return NextResponse.json({ message: `Acesso negado. Usuário não é membro do grupo "${AD_REQUIRED_GROUP_NAME}".` }, { status: 403 });
-        }
+        // if (!isMemberOfRequiredGroup) {
+        //     return NextResponse.json({ message: `Acesso negado. Usuário não é membro do grupo "${AD_REQUIRED_GROUP_NAME}".` }, { status: 403 });
+        // }
 
 
         // --- 3. SINCRONIZAÇÃO/CRIAÇÃO DE USUÁRIO NO STRAPI ---
