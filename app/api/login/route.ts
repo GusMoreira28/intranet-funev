@@ -1,17 +1,22 @@
-// app/api/ad-login/route.ts
+// app/api/login/route.ts
 import { NextResponse } from 'next/server';
 import ldap from 'ldapjs';
 
 export async function POST(request: Request) {
     const { username, password } = await request.json();
 
-    const AD_URL = process.env.AD_SERVER_URL || 'ldap://172.16.1.231:389'; // Usar LDAPS (porta 636) é CRUCIAL para segurança
-    const AD_BASE_DN = process.env.AD_BASE_DN || 'DC=funev,DC=local'; // Exemplo: DC=dominio,DC=local
-    const STRAPI_API_URL = process.env.NEXT_PUBLIC_STRAPI_URL; // URL da sua API Strapi
-    const STRAPI_ADMIN_API_TOKEN = process.env.STRAPI_ADMIN_API_TOKEN; // Token de Admin do Strapi
-    const STRAPI_DEFAULT_USER_PASSWORD = process.env.STRAPI_DEFAULT_USER_PASSWORD || 'defaultStrapiPass123!'; // Senha padrão no Strapi
-
+    const AD_URL = process.env.AD_SERVER_URL || 'ldap://172.16.1.231:389';
+    const AD_BASE_DN = process.env.AD_BASE_DN || 'DC=funev,DC=local';
+    const STRAPI_API_URL = process.env.NEXT_PUBLIC_STRAPI_URL;
+    const STRAPI_ADMIN_API_TOKEN = process.env.STRAPI_ADMIN_API_TOKEN;
+    const STRAPI_DEFAULT_USER_PASSWORD = process.env.STRAPI_DEFAULT_USER_PASSWORD || 'defaultStrapiPass123!';
     const AD_REQUIRED_GROUP_NAME = process.env.AD_REQUIRED_GROUP_NAME;
+
+    // DEBUG: Log das variáveis de ambiente
+    console.log('=== DEBUG CONFIGURAÇÃO ===');
+    console.log('AD_REQUIRED_GROUP_NAME:', AD_REQUIRED_GROUP_NAME);
+    console.log('AD_BASE_DN:', AD_BASE_DN);
+    console.log('Username recebido:', username);
 
     if (!STRAPI_ADMIN_API_TOKEN) {
         console.error('STRAPI_ADMIN_API_TOKEN não configurado nas variáveis de ambiente!');
@@ -28,11 +33,12 @@ export async function POST(request: Request) {
     const userPrincipalName = `${username}@${userDomain}`;
     const strapiUserEmail = userPrincipalName;
 
+    console.log('UserPrincipalName construído:', userPrincipalName);
+
     try {
         // --- 1. AUTENTICAÇÃO NO ACTIVE DIRECTORY (LDAP) ---
         ldapClient = ldap.createClient({
             url: AD_URL,
-            // tlsOptions: { rejectUnauthorized: false } // APENAS PARA DEBUG EM DESENVOLVIMENTO! REMOVER EM PRODUÇÃO!
         });
 
         ldapClient.on('error', (err: Error) => {
@@ -42,7 +48,6 @@ export async function POST(request: Request) {
         const authenticateLdapUser = (): Promise<boolean> => {
             return new Promise((resolve, reject) => {
                 const userDn = strapiUserEmail;
-
                 console.log('Tentando LDAP bind com DN:', userDn);
 
                 if (!ldapClient) {
@@ -59,6 +64,7 @@ export async function POST(request: Request) {
                             reject(new Error(`Erro de autenticação LDAP: ${err.message || err.name}`));
                         }
                     } else {
+                        console.log('✅ Autenticação LDAP bem-sucedida para:', username);
                         resolve(true);
                     }
                 });
@@ -79,57 +85,117 @@ export async function POST(request: Request) {
                     return;
                 }
 
-                const opts = {
-                    filter: `(userPrincipalName=${userPrincipalName})`, // Busca o usuário pelo UPN
-                    scope: 'sub' as const, // Busca em sub-árvores
-                    attributes: ['memberOf'], // Pede o atributo memberOf
-                };
+                // Tentar múltiplos filtros para encontrar o usuário
+                const filters = [
+                    `(userPrincipalName=${userPrincipalName})`,
+                    `(sAMAccountName=${username})`,
+                    `(&(objectClass=user)(|(userPrincipalName=${userPrincipalName})(sAMAccountName=${username})))`
+                ];
 
-                let userGroups: string[] = [];
-                ldapClient.search(AD_BASE_DN, opts, (err, res) => {
-                    if (err) {
-                        console.error(`LDAP Search Error for user ${username} groups:`, err);
-                        reject(new Error(`Erro ao buscar grupos do AD: ${err.message || err.name}`));
+                let attemptIndex = 0;
+
+                const tryNextFilter = () => {
+                    if (attemptIndex >= filters.length) {
+                        console.error('❌ Nenhum filtro LDAP funcionou para encontrar o usuário');
+                        resolve(false);
                         return;
                     }
 
-                    res.on('searchEntry', (entry) => {
-                        if (entry.attributes && entry.attributes.length > 0) {
-                            const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
-                            if (memberOfAttr && memberOfAttr.values) {
-                                userGroups = Array.isArray(memberOfAttr.values) ? memberOfAttr.values : [memberOfAttr.values];
-                            }
-                        }
-                    });
+                    const currentFilter = filters[attemptIndex];
+                    console.log(`\n=== TENTATIVA ${attemptIndex + 1} ===`);
+                    console.log('Filtro LDAP:', currentFilter);
+                    console.log('Base DN:', AD_BASE_DN);
 
-                    res.on('error', (err) => {
-                        console.error(`LDAP Search Stream Error for user ${username} groups:`, err);
-                        reject(new Error(`Erro no stream de busca LDAP: ${err.message || err.name}`));
-                    });
+                    const opts = {
+                        filter: currentFilter,
+                        scope: 'sub' as const,
+                        attributes: ['memberOf', 'distinguishedName', 'cn', 'sAMAccountName', 'userPrincipalName'],
+                    };
 
-                    res.on('end', (result) => {
-                        if (!result || result.status !== 0) {
-                            console.error(`LDAP Search non-zero status for user ${username} groups:`, result);
-                            reject(new Error(`Busca de grupo LDAP finalizada com status ${result?.status}`));
+                    let userGroups: string[] = [];
+                    let foundUser = false;
+
+                    ldapClient!.search(AD_BASE_DN, opts, (err, res) => {
+                        if (err) {
+                            console.error(`LDAP Search Error (tentativa ${attemptIndex + 1}):`, err);
+                            attemptIndex++;
+                            tryNextFilter();
                             return;
                         }
 
-                        // Verifica se o usuário é membro do grupo necessário
-                        const isMember = userGroups.some(groupDn => {
-                            // O groupDn será algo como "CN=SeuGrupoDeTI,OU=Grupos,DC=suaempresa,DC=com"
-                            // Precisamos extrair o nome do grupo e comparar com AD_REQUIRED_GROUP_NAME
-                            const match = groupDn.match(/CN=([^,]+)/i);
-                            const groupName = match ? match[1] : '';
-                            return AD_REQUIRED_GROUP_NAME
-                                ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
-                                : false;
+                        res.on('searchEntry', (entry) => {
+                            foundUser = true;
+                            console.log('✅ Usuário encontrado!');
+                            console.log('DN do usuário:', entry.objectName);
+
+                            if (entry.attributes && entry.attributes.length > 0) {
+                                console.log('Atributos disponíveis:');
+                                entry.attributes.forEach(attr => {
+                                    console.log(`  - ${attr.type}: ${Array.isArray(attr.values) ? attr.values.length + ' valores' : 'valor único'}`);
+                                });
+
+                                const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
+                                if (memberOfAttr && memberOfAttr.values) {
+                                    userGroups = Array.isArray(memberOfAttr.values) ? memberOfAttr.values : [memberOfAttr.values];
+                                    console.log('✅ Grupos encontrados:', userGroups.length);
+                                    userGroups.forEach((group, index) => {
+                                        console.log(`  ${index + 1}. ${group}`);
+                                    });
+                                } else {
+                                    console.log('⚠️  Atributo memberOf não encontrado ou vazio');
+                                }
+                            }
                         });
 
-                        console.log(`Usuário ${username} é membro dos grupos:`, userGroups);
-                        console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
-                        resolve(isMember);
+                        res.on('error', (err) => {
+                            console.error(`LDAP Search Stream Error (tentativa ${attemptIndex + 1}):`, err);
+                            attemptIndex++;
+                            tryNextFilter();
+                        });
+
+                        res.on('end', (result) => {
+                            if (!result || result.status !== 0) {
+                                console.error(`LDAP Search status não-zero (tentativa ${attemptIndex + 1}):`, result?.status);
+                                attemptIndex++;
+                                tryNextFilter();
+                                return;
+                            }
+
+                            if (!foundUser) {
+                                console.log(`❌ Nenhum usuário encontrado com filtro ${attemptIndex + 1}`);
+                                attemptIndex++;
+                                tryNextFilter();
+                                return;
+                            }
+
+                            // Verifica se o usuário é membro do grupo necessário
+                            const isMember = userGroups.some(groupDn => {
+                                const match = groupDn.match(/CN=([^,]+)/i);
+                                const groupName = match ? match[1] : '';
+                                const isMatch = AD_REQUIRED_GROUP_NAME
+                                    ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
+                                    : false;
+                                
+                                if (isMatch) {
+                                    console.log(`✅ Match encontrado: "${groupName}" === "${AD_REQUIRED_GROUP_NAME}"`);
+                                }
+                                
+                                return isMatch;
+                            });
+
+                            console.log(`\n=== RESULTADO FINAL ===`);
+                            console.log(`Usuário ${username} é membro dos grupos:`, userGroups.map(g => {
+                                const match = g.match(/CN=([^,]+)/i);
+                                return match ? match[1] : g;
+                            }));
+                            console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
+                            
+                            resolve(isMember);
+                        });
                     });
-                });
+                };
+
+                tryNextFilter();
             });
         };
 
@@ -139,11 +205,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: `Acesso negado. Usuário não é membro do grupo "${AD_REQUIRED_GROUP_NAME}".` }, { status: 403 });
         }
 
-
         // --- 3. SINCRONIZAÇÃO/CRIAÇÃO DE USUÁRIO NO STRAPI ---
         let strapiUser: any = null;
 
-        // Tenta encontrar o usuário no Strapi usando a API Admin
         const findStrapiUserResponse = await fetch(`${STRAPI_API_URL}/api/users?filters[email][$eq]=${strapiUserEmail}`, {
             method: 'GET',
             headers: {
@@ -158,7 +222,6 @@ export async function POST(request: Request) {
         }
 
         if (!strapiUser) {
-            // Se o usuário não existe no Strapi, cria um novo usando /auth/local/register
             console.log(`Usuário ${username} não encontrado no Strapi. Criando...`);
             
             const createStrapiUserResponse = await fetch(`${STRAPI_API_URL}/api/auth/local/register`, {
@@ -173,7 +236,6 @@ export async function POST(request: Request) {
                 }),
             });
 
-            // CORREÇÃO: Tratamento melhorado de erro
             if (!createStrapiUserResponse.ok) {
                 let errorData;
                 const contentType = createStrapiUserResponse.headers.get('content-type');
@@ -181,7 +243,6 @@ export async function POST(request: Request) {
                 if (contentType && contentType.includes('application/json')) {
                     errorData = await createStrapiUserResponse.json();
                 } else {
-                    // Se não for JSON, pega como texto
                     const errorText = await createStrapiUserResponse.text();
                     errorData = { message: errorText };
                 }
@@ -195,7 +256,6 @@ export async function POST(request: Request) {
             
             console.log(`Usuário ${username} criado no Strapi com sucesso.`);
             
-            // Se o registro retornou JWT, use-o diretamente
             if (registrationData.jwt) {
                 return NextResponse.json({ 
                     message: 'Login bem-sucedido!', 
