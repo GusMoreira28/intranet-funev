@@ -28,7 +28,6 @@ export async function POST(request: Request) {
     const userPrincipalName = `${username}@${userDomain}`;
     const strapiUserEmail = userPrincipalName;
 
-
     try {
         // --- 1. AUTENTICAÇÃO NO ACTIVE DIRECTORY (LDAP) ---
         ldapClient = ldap.createClient({
@@ -72,145 +71,166 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'Usuário ou senha inválidos no Active Directory.' }, { status: 401 });
         }
 
-        // // --- 2. VERIFICAÇÃO DE GRUPO NO ACTIVE DIRECTORY ---
-        // const isUserInRequiredGroup = (): Promise<boolean> => {
-        //     return new Promise((resolve, reject) => {
-        //         if (!ldapClient) {
-        //             reject(new Error('Cliente LDAP não inicializado para busca de grupo.'));
-        //             return;
-        //         }
+        // --- 2. VERIFICAÇÃO DE GRUPO NO ACTIVE DIRECTORY ---
+        const isUserInRequiredGroup = (): Promise<boolean> => {
+            return new Promise((resolve, reject) => {
+                if (!ldapClient) {
+                    reject(new Error('Cliente LDAP não inicializado para busca de grupo.'));
+                    return;
+                }
 
-        //         const opts = {
-        //             filter: `(userPrincipalName=${userPrincipalName})`, // Busca o usuário pelo UPN
-        //             scope: 'sub' as const, // Busca em sub-árvores
-        //             attributes: ['memberOf'], // Pede o atributo memberOf
-        //         };
+                const opts = {
+                    filter: `(userPrincipalName=${userPrincipalName})`, // Busca o usuário pelo UPN
+                    scope: 'sub' as const, // Busca em sub-árvores
+                    attributes: ['memberOf'], // Pede o atributo memberOf
+                };
 
-        //         let userGroups: string[] = [];
-        //         ldapClient.search(AD_BASE_DN, opts, (err, res) => {
-        //             if (err) {
-        //                 console.error(`LDAP Search Error for user ${username} groups:`, err);
-        //                 reject(new Error(`Erro ao buscar grupos do AD: ${err.message || err.name}`));
-        //                 return;
-        //             }
+                let userGroups: string[] = [];
+                ldapClient.search(AD_BASE_DN, opts, (err, res) => {
+                    if (err) {
+                        console.error(`LDAP Search Error for user ${username} groups:`, err);
+                        reject(new Error(`Erro ao buscar grupos do AD: ${err.message || err.name}`));
+                        return;
+                    }
 
-        //             res.on('searchEntry', (entry) => {
-        //                 if (entry.attributes && entry.attributes.length > 0) {
-        //                     const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
-        //                     if (memberOfAttr && memberOfAttr.vals) {
-        //                         userGroups = Array.isArray(memberOfAttr.vals) ? memberOfAttr.vals : [memberOfAttr.vals];
-        //                     }
-        //                 }
-        //             });
+                    res.on('searchEntry', (entry) => {
+                        if (entry.attributes && entry.attributes.length > 0) {
+                            const memberOfAttr = entry.attributes.find(attr => attr.type === 'memberOf');
+                            if (memberOfAttr && memberOfAttr.vals) {
+                                userGroups = Array.isArray(memberOfAttr.vals) ? memberOfAttr.vals : [memberOfAttr.vals];
+                            }
+                        }
+                    });
 
-        //             res.on('error', (err) => {
-        //                 console.error(`LDAP Search Stream Error for user ${username} groups:`, err);
-        //                 reject(new Error(`Erro no stream de busca LDAP: ${err.message || err.name}`));
-        //             });
+                    res.on('error', (err) => {
+                        console.error(`LDAP Search Stream Error for user ${username} groups:`, err);
+                        reject(new Error(`Erro no stream de busca LDAP: ${err.message || err.name}`));
+                    });
 
-        //             res.on('end', (result) => {
-        //                 if (!result || result.status !== 0) {
-        //                     console.error(`LDAP Search non-zero status for user ${username} groups:`, result);
-        //                     reject(new Error(`Busca de grupo LDAP finalizada com status ${result?.status}`));
-        //                     return;
-        //                 }
+                    res.on('end', (result) => {
+                        if (!result || result.status !== 0) {
+                            console.error(`LDAP Search non-zero status for user ${username} groups:`, result);
+                            reject(new Error(`Busca de grupo LDAP finalizada com status ${result?.status}`));
+                            return;
+                        }
 
-        //                 // Verifica se o usuário é membro do grupo necessário
-        //                 const isMember = userGroups.some(groupDn => {
-        //                     // O groupDn será algo como "CN=SeuGrupoDeTI,OU=Grupos,DC=suaempresa,DC=com"
-        //                     // Precisamos extrair o nome do grupo e comparar com AD_REQUIRED_GROUP_NAME
-        //                     const match = groupDn.match(/CN=([^,]+)/i);
-        //                     const groupName = match ? match[1] : '';
-        //                     return AD_REQUIRED_GROUP_NAME
-        //                         ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
-        //                         : false;
-        //                 });
+                        // Verifica se o usuário é membro do grupo necessário
+                        const isMember = userGroups.some(groupDn => {
+                            // O groupDn será algo como "CN=SeuGrupoDeTI,OU=Grupos,DC=suaempresa,DC=com"
+                            // Precisamos extrair o nome do grupo e comparar com AD_REQUIRED_GROUP_NAME
+                            const match = groupDn.match(/CN=([^,]+)/i);
+                            const groupName = match ? match[1] : '';
+                            return AD_REQUIRED_GROUP_NAME
+                                ? groupName.toLowerCase() === AD_REQUIRED_GROUP_NAME.toLowerCase()
+                                : false;
+                        });
 
-        //                 console.log(`Usuário ${username} é membro dos grupos:`, userGroups);
-        //                 console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
-        //                 resolve(isMember);
-        //             });
-        //         });
-        //     });
-        // };
+                        console.log(`Usuário ${username} é membro dos grupos:`, userGroups);
+                        console.log(`Verificando se é membro de "${AD_REQUIRED_GROUP_NAME}":`, isMember);
+                        resolve(isMember);
+                    });
+                });
+            });
+        };
 
-        // const isMemberOfRequiredGroup = await isUserInRequiredGroup();
+        const isMemberOfRequiredGroup = await isUserInRequiredGroup();
 
-        // if (!isMemberOfRequiredGroup) {
-        //     return NextResponse.json({ message: `Acesso negado. Usuário não é membro do grupo "${AD_REQUIRED_GROUP_NAME}".` }, { status: 403 });
-        // }
+        if (!isMemberOfRequiredGroup) {
+            return NextResponse.json({ message: `Acesso negado. Usuário não é membro do grupo "${AD_REQUIRED_GROUP_NAME}".` }, { status: 403 });
+        }
 
 
         // --- 3. SINCRONIZAÇÃO/CRIAÇÃO DE USUÁRIO NO STRAPI ---
         let strapiUser: any = null;
 
-        // Tenta encontrar o usuário no Strapi
-        const findStrapiUserResponse = await fetch(`${STRAPI_API_URL}/users?filters[email][$eq]=${strapiUserEmail}`, {
+        // Tenta encontrar o usuário no Strapi usando a API Admin
+        const findStrapiUserResponse = await fetch(`${STRAPI_API_URL}/api/users?filters[email][$eq]=${strapiUserEmail}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${STRAPI_ADMIN_API_TOKEN}`, // Usa o token Admin para buscar usuários
+                'Authorization': `Bearer ${STRAPI_ADMIN_API_TOKEN}`,
                 'Content-Type': 'application/json',
             },
         });
 
-        const strapiUsers = await findStrapiUserResponse.json();
-        strapiUser = strapiUsers[0];
+        if (findStrapiUserResponse.ok) {
+            const strapiUsers = await findStrapiUserResponse.json();
+            strapiUser = strapiUsers[0];
+        }
 
         if (!strapiUser) {
-            // Se o usuário não existe no Strapi, cria um novo
+            // Se o usuário não existe no Strapi, cria um novo usando /auth/local/register
             console.log(`Usuário ${username} não encontrado no Strapi. Criando...`);
             
-            const createStrapiUserResponse = await fetch(`${STRAPI_API_URL}/users`, {
+            const createStrapiUserResponse = await fetch(`${STRAPI_API_URL}/api/auth/local/register`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${STRAPI_ADMIN_API_TOKEN}`, // Usa o token Admin para criar
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     username: username,
                     email: strapiUserEmail,
-                    password: STRAPI_DEFAULT_USER_PASSWORD, // Usa a senha padrão/gerada
-                    confirmed: true,
-                    role: 1, // ID do papel "Authenticated" no Strapi (geralmente 1 ou 2)
+                    password: STRAPI_DEFAULT_USER_PASSWORD,
                 }),
             });
 
+            // CORREÇÃO: Tratamento melhorado de erro
             if (!createStrapiUserResponse.ok) {
-                const errorData = await createStrapiUserResponse.json();
+                let errorData;
+                const contentType = createStrapiUserResponse.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    errorData = await createStrapiUserResponse.json();
+                } else {
+                    // Se não for JSON, pega como texto
+                    const errorText = await createStrapiUserResponse.text();
+                    errorData = { message: errorText };
+                }
+                
                 console.error('Falha ao criar usuário no Strapi:', errorData);
-                throw new Error(errorData.message || 'Falha ao criar usuário no Strapi.');
+                throw new Error(errorData.message || `Falha ao criar usuário no Strapi. Status: ${createStrapiUserResponse.status}`);
             }
-            strapiUser = await createStrapiUserResponse.json();
-            console.log(`Usuário ${username} criado no Strapi com senha padrão.`);
+
+            const registrationData = await createStrapiUserResponse.json();
+            strapiUser = registrationData.user;
+            
+            console.log(`Usuário ${username} criado no Strapi com sucesso.`);
+            
+            // Se o registro retornou JWT, use-o diretamente
+            if (registrationData.jwt) {
+                return NextResponse.json({ 
+                    message: 'Login bem-sucedido!', 
+                    user: username, 
+                    strapiJwt: registrationData.jwt 
+                }, { status: 200 });
+            }
         } else {
-            console.log(`Usuário ${username} já existe no Strapi. Tentando login com senha padrão...`);
-            // Para usuários existentes, se a senha no Strapi não for a padrão, o login abaixo falhará.
-            // Para uma solução mais robusta, você precisaria de um endpoint customizado no Strapi
-            // que gere um JWT para um usuário autenticado via AD sem precisar da senha do Strapi.
+            console.log(`Usuário ${username} já existe no Strapi. Fazendo login...`);
         }
 
-        // --- 3. LOGA NO STRAPI USANDO /api/auth/local PARA OBTER O JWT ---
-        const strapiLoginResponse = await fetch(`${STRAPI_API_URL}/auth/local`, {
+        // --- 4. LOGA NO STRAPI USANDO /api/auth/local PARA OBTER O JWT ---
+        const strapiLoginResponse = await fetch(`${STRAPI_API_URL}/api/auth/local`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 identifier: strapiUserEmail,
-                password: STRAPI_DEFAULT_USER_PASSWORD, // Tenta logar com a senha padrão/gerada
+                password: STRAPI_DEFAULT_USER_PASSWORD,
             }),
         });
 
         if (!strapiLoginResponse.ok) {
-            const errorText = await strapiLoginResponse.text();
-            let errorMessage = `Falha ao obter JWT do Strapi via /auth/local: Status ${strapiLoginResponse.status}`;
+            let errorMessage = `Falha ao obter JWT do Strapi: Status ${strapiLoginResponse.status}`;
+            
             try {
-                const errorJson = JSON.parse(errorText);
-                errorMessage = errorJson.error?.message || errorJson.message || errorMessage;
+                const errorData = await strapiLoginResponse.json();
+                errorMessage = errorData.error?.message || errorData.message || errorMessage;
             } catch (parseError) {
+                const errorText = await strapiLoginResponse.text();
                 errorMessage += ` - Resposta: ${errorText.substring(0, 100)}...`;
             }
-            console.error('Resposta de erro do Strapi /auth/local:', errorText);
+            
+            console.error('Erro ao fazer login no Strapi:', errorMessage);
             throw new Error(errorMessage);
         }
 
@@ -218,10 +238,14 @@ export async function POST(request: Request) {
         const strapiJwt = strapiLoginData.jwt;
 
         if (!strapiJwt) {
-            throw new Error('JWT do Strapi não recebido após login via /auth/local.');
+            throw new Error('JWT do Strapi não recebido após login.');
         }
 
-        return NextResponse.json({ message: 'Login bem-sucedido!', user: username, strapiJwt: strapiJwt }, { status: 200 });
+        return NextResponse.json({ 
+            message: 'Login bem-sucedido!', 
+            user: username, 
+            strapiJwt: strapiJwt 
+        }, { status: 200 });
 
     } catch (error) {
         console.error('Erro na rota de API de login AD/Strapi:', error);
