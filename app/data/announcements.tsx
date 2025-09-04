@@ -15,4 +15,5 @@ export interface Announcement {
     content: StrapiMedia | null;
     author: string;
     date: string;
+    description: string;
 }

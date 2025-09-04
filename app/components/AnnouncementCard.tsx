@@ -39,21 +39,26 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ announcement, isSum
         }
     }
     return (
-        <div className="p-4 rounded-lg shadow-md" style={{ backgroundColor: 'var(--color-funev-light)' }}>
-            <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--color-funev-dark)' }}>{announcement.title}</h3>
+        <div className="p-4" >
+            <div className="grid grid-cols-2 gap-4">
+                <Link href={announcementHref} className='flex flex-col'>
+                    {imageUrl && !imageError && (
+                        <div className="relative w-full h-80 mb-3 ">
+                            <Image
+                                src={imageUrl} // Usa a URL completa construída
+                                alt={announcement.title || 'Imagem do Comunicado'}
+                                layout="fill" // Preenche o espaço disponível
+                                objectFit="contain" // Corta para cobrir
+                                className="rounded-md w-full"
+                            />
+                        </div>
+                    )}
 
-            {imageUrl && !imageError && (
-                <div className="relative w-full h-80 mb-3 rounded-md overflow-hidden">
-                    <Image
-                        src={imageUrl} // Usa a URL completa construída
-                        alt={announcement.title || 'Imagem do Comunicado'}
-                        layout="fill" // Preenche o espaço disponível
-                        objectFit="contain" // Corta para cobrir
-                        className="rounded-md"
-                    />
+                </Link>
+                <div className="flex items-center justify-center h-full">
+                    <p className="text-2xl text-center" style={{ color: 'var(--color-funev-gray)' }}>{announcement.description}</p>
                 </div>
-            )}
-
+            </div>
             <Link href={announcementHref} className="hover:underline text-sm mt-2 block text-left transition duration-300"
                 style={{ color: 'var(--color-funev-dark)' }}
                 onMouseEnter={(e) => handleLinkHover(e, true)}

@@ -7,13 +7,16 @@
     --color-funev-dark: #0E0068;
     --color-funev-light: #F3F4F6;
     --color-funev-white: #FFFFFF;
+    --color-funev-gray: #666d70;
 }
 
 /* Estilos globais da sua aplicação */
 body {
-    /* A fonte Inter será definida e carregada via next/font/google em app/layout.tsx */
-    background-color: #F3F4F6;
-    /* Cor de fundo principal da FUNEV (funevLight) */
+    font-family: var(--font-titillium-web), sans-serif;
+    background-image: linear-gradient(rgba(243, 244, 246, 0.8), rgba(243, 244, 246, 1.8)), url('/fachada-brasil.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: #0E0068;
     /* Cor de texto padrão (funevDark) */
     margin: 0;

@@ -141,7 +141,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchCurrentMonthEvents = async () => {
             try {
-                const response = await fetch(buildStrapiUrl('/events')); // Endpoint do Strapi para eventos
+                const response = await fetch(buildStrapiUrl('/events?populate=banner')); // Endpoint do Strapi para eventos
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -149,17 +149,33 @@ export default function HomePage() {
                 console.log("Dados brutos de Eventos do Strapi (Home):", rawData); // DEBUG: Verifique esta saída!
 
                 const transformedEvents: Event[] = rawData.data.map((item: any) => {
-                    if (!item || typeof item.id === 'undefined') {
+                    if (!item || typeof item.documentId === 'undefined') {
                         console.warn("Item de evento inválido ou sem atributos:", item);
                         return null;
                     }
+
+                    let bannerData = null;
+
+                    if (item.banner) {
+                        if (item.banner.url) {
+                            // Strapi v5 formato direto
+                            bannerData = `${API_CONFIG.strapi}${item.banner.url}`;
+                        } else if (item.banner.data && item.banner.data.attributes && item.banner.data.attributes.url) {
+                            // Strapi v4 formato
+                            bannerData = `${API_CONFIG.strapi}${item.banner.data.attributes.url}`;
+                        } else {
+                            // Se banner for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do banner não reconhecida (Eventos Page):', item.banner);
+                        }
+                    }
+
+                    console.log('URL final do banner (Eventos Page):', bannerData);
+
                     return {
-                        id: item.id,
+                        id: item.documentId,
                         title: item.title || 'Título Indisponível',
                         date: item.date || '',
-                        time: item.time || '',
-                        location: item.location || '',
-                        topic: item.topic || '',
+                        banner: bannerData
                     };
                 }).filter(Boolean); // Filtra quaisquer itens nulos
 
@@ -171,7 +187,7 @@ export default function HomePage() {
                     const eventMonth = eventDate.toLocaleString('pt-BR', { month: 'long' });
                     const capitalizedEventMonth = eventMonth.charAt(0).toUpperCase() + eventMonth.slice(1);
                     return capitalizedEventMonth === capitalizedCurrentMonth;
-                });
+                }).filter(Boolean);
                 setCurrentMonthEvents(filteredEvents);
             } catch (err) {
                 if (err instanceof Error) { setErrorEvents(err.message); console.error("Erro ao buscar eventos do mês do Strapi:", err); } else { setErrorEvents("Ocorreu um erro desconhecido ao buscar eventos do Strapi."); console.error("Erro desconhecido ao buscar eventos do Strapi:", err); }
@@ -237,18 +253,15 @@ export default function HomePage() {
     useEffect(() => {
         const fetchLinks = async () => {
             try {
-                // CORREÇÃO: Adicionar populate=icon para incluir os dados da imagem
-                const response = await fetch(buildStrapiUrl('/links?populate=icon'));
+                const response = await fetch(buildStrapiUrl('/links'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
                 console.log("Dados brutos de Links do Strapi (Home):", rawData);
 
-                // ADICIONE ESTE LOG para ver cada item individualmente
                 rawData.data?.forEach((item: any, index: number) => {
                     console.log(`Link ${index}:`, item);
-                    console.log(`Icon do Link ${index}:`, item.icon);
                 });
 
                 if (!Array.isArray(rawData.data)) {
@@ -264,33 +277,12 @@ export default function HomePage() {
                         return null;
                     }
 
-                    // CORREÇÃO: Log detalhado do processamento do ícone
                     console.log('Processando item:', item);
-                    console.log('Ícone original:', item.icon);
-
-                    // CORREÇÃO: Extrair URL do ícone corretamente baseado na estrutura do Strapi v5
-                    let iconData = null;
-
-                    if (item.icon) {
-                        if (item.icon.url) {
-                            // Strapi v5 formato direto
-                            iconData = `${API_CONFIG.strapi}${item.icon.url}`;
-                        } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
-                            // Strapi v4 formato
-                            iconData = `${API_CONFIG.strapi}${item.icon.data.attributes.url}`;
-                        } else {
-                            // Se icon for um objeto complexo, vamos logar para debug
-                            console.log('Estrutura do ícone não reconhecida:', item.icon);
-                        }
-                    }
-
-                    console.log('URL final do ícone:', iconData);
 
                     return {
                         id: item.id,
                         title: item.title || 'Título Indisponível',
                         url: item.url || '#',
-                        icon: iconData, // Usar iconData em vez de iconUrl
                     };
                 }).filter(Boolean);
 
@@ -361,6 +353,7 @@ export default function HomePage() {
                         content: contentData || null, // <<< content agora é o objeto de mídia
                         author: item.author || 'Autor Desconhecido',
                         date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
+                        description: item.description || 'Descrição Indisponível',
                     };
                 }).filter(Boolean);
 
@@ -392,38 +385,10 @@ export default function HomePage() {
         setModalType('');
     };
 
-    const boasPraticas = [
-        'Utilize senhas fortes e únicas para cada serviço.',
-        'Não compartilhe suas credenciais de acesso com ninguém.',
-        'Sempre faça backup de dados importantes, se possível.',
-        'Mantenha seu software (antivírus, sistema operacional) sempre atualizado.',
-        'Reporte qualquer atividade suspeita ao departamento de TI.',
-        'Ao sair do computador, bloqueie a tela (Windows+L).'
-    ];
-
-    const tiMembers = [
-        { name: 'Adriano Ferreira Barbosa', role: 'Coordenador' },
-        { name: 'Matheus Guilherme Ferreira Araújo', role: 'Supervisor' },
-        { name: 'Gustavo Maia Moreira', role: 'Assistente' },
-        { name: 'Lucas Moraes Aguiar', role: 'Auxiliar' },
-    ];
-
     return (
         <>
-
-            {/* Botão para abrir o modal da TI */}
-            <div className="text-right mb-6">
-                <button
-                    onClick={() => setShowTiModal(true)}
-                    className="px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                    style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                    onMouseEnter={(e) => handleButtonHover(e, true)}
-                    onMouseLeave={(e) => handleButtonHover(e, false)}
-                >
-                    Boas Práticas de TI
-                </button>
-            </div>
-            <SectionWrapper id="wiki-home" title="Wiki Interna" titleColor="var(--color-funev-blue)" description="Bem-vindo à Wiki da FUNEV! Aqui você encontra informações importantes sobre processos, políticas e procedimentos internos.">
+            <SectionWrapper id="wiki-home" title="Wiki Interna" titleColor="var(--color-funev-blue)" description="Aqui você encontra informações importantes sobre processos, políticas e procedimentos internos.
+">
                 {loadingWiki && (
                     <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Carregando artigos da Wiki...</p>
                 )}
@@ -444,43 +409,10 @@ export default function HomePage() {
                         ))}
                     </div>
                 )}
-                <Link href="/wiki" className="mt-6 px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                    style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                    onMouseEnter={(e) => handleButtonHover(e, true)}
-                    onMouseLeave={(e) => handleButtonHover(e, false)}>
-                    Acessar Wiki Completa
-                </Link>
             </SectionWrapper>
-
-            <SectionWrapper id="links-home" title="Links Úteis" titleColor="var(--color-funev-blue)">
-                {loadingLinks && (
-                    <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Carregando links...</p>
-                )}
-                {errorLinks && (
-                    <p className="text-center" style={{ color: 'red' }}>Erro ao carregar links: {errorLinks}</p>
-                )}
-                {!loadingLinks && !errorLinks && homeLinks.length === 0 && (
-                    <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Nenhum link disponível.</p>
-                )}
-                {!loadingLinks && !errorLinks && homeLinks.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {homeLinks.map((link: UsefulLink, index: number) => (
-                            <LinkCard key={index} link={link} />
-                        ))}
-                    </div>
-                )}
-                <Link href="/links" className="mt-6 px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                    style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                    onMouseEnter={(e) => handleButtonHover(e, true)}
-                    onMouseLeave={(e) => handleButtonHover(e, false)}>
-                    Ver todos os Links
-                </Link>
-            </SectionWrapper>
-
-
-            {/* Seção de Comunicados Oficiais na Home */}
+             {/* Seção de Comunicados Oficiais na Home */}
             {(loadingAnnouncements || errorAnnouncements || homeAnnouncements.length > 0) && (
-                <SectionWrapper id="announcements" title="Comunicados Oficiais" titleColor="var(--color-funev-blue)">
+                <SectionWrapper id="announcements" title="Comunicados" description="Clique para expandir a imagem." titleColor="var(--color-funev-blue)">
                     {loadingAnnouncements && (
                         <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Carregando comunicados...</p>
                     )}
@@ -501,14 +433,27 @@ export default function HomePage() {
                             ))}
                         </div>
                     )}
-                    <Link href="/comunicados" className="mt-6 px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                        style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                        onMouseEnter={(e) => handleButtonHover(e, true)}
-                        onMouseLeave={(e) => handleButtonHover(e, false)}>
-                        Ver Todos os Comunicados
-                    </Link>
                 </SectionWrapper>
             )}
+
+            <SectionWrapper id="links-home" title="Links importantes" titleColor="var(--color-funev-blue)">
+                {loadingLinks && (
+                    <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Carregando links...</p>
+                )}
+                {errorLinks && (
+                    <p className="text-center" style={{ color: 'red' }}>Erro ao carregar links: {errorLinks}</p>
+                )}
+                {!loadingLinks && !errorLinks && homeLinks.length === 0 && (
+                    <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Nenhum link disponível.</p>
+                )}
+                {!loadingLinks && !errorLinks && homeLinks.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {homeLinks.map((link: UsefulLink, index: number) => (
+                            <LinkCard key={index} link={link} />
+                        ))}
+                    </div>
+                )}
+            </SectionWrapper>
 
             {/* Seção de Aniversariantes na Home */}
             <SectionWrapper id="birthdays" title="Aniversariantes do Mês" titleColor="var(--color-funev-blue)">
@@ -542,13 +487,6 @@ export default function HomePage() {
                             Aniversariantes do Dia
                         </button>
                     )}
-
-                    <Link href="/birthdays" className="px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                        style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                        onMouseEnter={(e) => handleButtonHover(e, true)}
-                        onMouseLeave={(e) => handleButtonHover(e, false)}>
-                        Ver todos os Aniversariantes
-                    </Link>
                 </div>
             </SectionWrapper>
 
@@ -571,23 +509,8 @@ export default function HomePage() {
                             ))}
                         </div>
                     )}
-                    <Link href="/calendar" className="mt-6 px-6 py-3 rounded-md shadow-md inline-block transition duration-300"
-                        style={{ backgroundColor: 'var(--color-funev-blue)', color: 'var(--color-funev-white)' }}
-                        onMouseEnter={(e) => handleButtonHover(e, true)}
-                        onMouseLeave={(e) => handleButtonHover(e, false)}>
-                        Ver Calendário Completo
-                    </Link>
                 </SectionWrapper>
             )}
-
-            {/* Modal de Boas Práticas de TI */}
-            <Modal show={showTiModal} onClose={() => setShowTiModal(false)} title="Boas Práticas de TI">
-                <ul className="list-disc list-inside space-y-2 text-left" style={{ color: 'var(--color-funev-dark)' }}>
-                    {boasPraticas.map((pratica, index) => (
-                        <li key={index}>{pratica}</li>
-                    ))}
-                </ul>
-            </Modal>
 
             {/*Modal de Aniversariantes do Dia */}
             <Modal show={showTodayBirthdayModal} onClose={() => setShowTodayBirthdayModal(false)} title="Aniversariantes do Dia">

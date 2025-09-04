@@ -65,6 +65,7 @@ export default function AnnouncementsPage() {
                         content: contentData || null, // <<< content agora é o objeto de mídia
                         author: item.author || 'Autor Desconhecido',
                         date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
+                        description: item.description || 'Descrição Indisponível',
                     };
                 }).filter(Boolean);
 
@@ -87,7 +88,7 @@ export default function AnnouncementsPage() {
     };
 
     return (
-        <SectionWrapper title="Comunicados Oficiais" titleColor="var(--color-funev-blue)">
+        <SectionWrapper title="Comunicados" titleColor="var(--color-funev-blue)">
             <div className="flex justify-between items-center mb-6">
                 <button
                     onClick={() => router.push('/')}

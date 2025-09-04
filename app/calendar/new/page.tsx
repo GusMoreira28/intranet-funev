@@ -1,7 +1,7 @@
 // app/calendar/new/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionWrapper from '../../components/SectionWrapper';
 import { isAuthenticated, getToken } from '../../auth'; // Importa funções de autenticação
@@ -11,12 +11,11 @@ export default function NewEventPage() {
     const router = useRouter();
     const [title, setTitle] = useState('');
     const [date, setDate] = useState('');
-    const [time, setTime] = useState('');
-    const [location, setLocation] = useState('');
-    const [topic, setTopic] = useState('');
+    const [selectedImage, setSelectedImage] = useState<File | null>(null); // Estado para o ficheiro de imagem
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref para o input de arquivo
 
     useEffect(() => {
         if (!isAuthenticated()) {
@@ -24,6 +23,17 @@ export default function NewEventPage() {
         }
     }, [router]);
 
+    // Manipulador para o input de arquivo
+        const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (event.target.files && event.target.files[0]) {
+                setSelectedImage(event.target.files[0]);
+                setError(null); // Limpa erro ao selecionar novo arquivo
+            } else {
+                setSelectedImage(null);
+            }
+        };
+
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -38,22 +48,61 @@ export default function NewEventPage() {
             return;
         }
 
+        if (!selectedImage) {
+            setError('Por favor, selecione uma imagem para o evento.');
+            setLoading(false);
+            return;
+        }
+        const currentDate = new Date().toISOString(); // Obtém a data atual no formato ISO
+        let uploadedFileId: number | null = null; // <<< NOVO: Para armazenar o ID do arquivo carregado
+
+
         try {
-            const response = await fetch(buildStrapiUrl('/api/events'), {
+            // --- 1. UPLOAD DA IMAGEM PARA A MEDIA LIBRARY DO STRAPI ---
+            const formData = new FormData();
+            formData.append('files', selectedImage);
+
+            console.log("Iniciando upload de imagem para Strapi...");
+            const uploadResponse = await fetch(buildStrapiUrl('/upload'), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Autentica o upload
+                },
+                body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                console.error('Upload de Imagem: Resposta de erro bruta:', errorText);
+                throw new Error(`Falha no upload da imagem: ${uploadResponse.status} ${uploadResponse.statusText}`);
+            }
+
+            const uploadData = await uploadResponse.json();
+            console.log("Dados de upload da imagem recebidos:", uploadData);
+
+            if (uploadData && Array.isArray(uploadData) && uploadData[0] && typeof uploadData[0].id === 'number') {
+                uploadedFileId = uploadData[0].id; // <<< AQUI: Obtém o ID numérico do arquivo carregado
+                console.log("ID do arquivo carregado:", uploadedFileId);
+            } else {
+                throw new Error('Upload de Imagem: Resposta inesperada do Strapi (ID do arquivo não encontrado).');
+            }
+
+            // --- 2. CRIAÇÃO DO COMUNICADO COM O ID DA IMAGEM ---
+            const payload = {
+                data: {
+                    title,
+                    banner: uploadedFileId, // <<< AQUI: O conteúdo agora é o ID do arquivo de mídia
+                    date: currentDate,
+                },
+            };
+            console.log("Payload enviado para o Strapi (Comunicado):", payload);
+            const response = await fetch(buildStrapiUrl('/events'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`, // <<< CRÍTICO: Inclui o token JWT no cabeçalho
                 },
-                body: JSON.stringify({
-                    data: {
-                        title,
-                        date,
-                        time,
-                        location,
-                        topic,
-                    },
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
@@ -67,9 +116,7 @@ export default function NewEventPage() {
             setSuccess('Evento adicionado com sucesso!');
             setTitle('');
             setDate('');
-            setTime('');
-            setLocation('');
-            setTopic('');
+            setSelectedImage(null);
             router.push('/calendar');
 
         } catch (err) {
@@ -136,45 +183,26 @@ export default function NewEventPage() {
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
                             />
                         </div>
-                        <div>
-                            <label htmlFor="time" className="block text-sm font-medium text-gray-700"
-                                style={{ color: 'var(--color-funev-dark)' }}>
-                                Hora:
-                            </label>
-                            <input
-                                type="text"
-                                id="time"
-                                value={time}
-                                onChange={(e) => setTime(e.target.value)}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="location" className="block text-sm font-medium text-gray-700"
-                                style={{ color: 'var(--color-funev-dark)' }}>
-                                Local:
-                            </label>
-                            <input
-                                type="text"
-                                id="location"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                            />
-                        </div>
                     </div>
                     <div>
-                        <label htmlFor="topic" className="block text-sm font-medium text-gray-700"
-                            style={{ color: 'var(--color-funev-dark)' }}>
-                            Tópico:
+                        <label htmlFor="content" className="block text-sm font-medium text-gray-700"
+                               style={{ color: 'var(--color-funev-dark)' }}>
+                            Banner do Evento:
                         </label>
-                        <textarea
-                            id="topic"
-                            value={topic}
-                            onChange={(e) => setTopic(e.target.value)}
-                            rows={3}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-funev-blue focus:border-funev-blue sm:text-sm"
-                        ></textarea>
+                        <input
+                            type="file"
+                            id="content"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            required
+                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-funev-green file:text-funev-white hover:file:bg-funev-blue"
+                        />
+                        {selectedImage && (
+                            <p className="text-sm mt-2" style={{ color: 'var(--color-funev-dark)' }}>
+                                Ficheiro selecionado: {selectedImage.name}
+                            </p>
+                        )}
                     </div>
                     {error && <p className="text-red-500 text-sm">{error}</p>}
                     {success && <p className="text-green-600 text-sm">{success}</p>}

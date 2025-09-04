@@ -1,11 +1,15 @@
 // app/layout.tsx
 import React from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Titillium_Web } from 'next/font/google';
 import './globals.css';
 import Header from './components/Header';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const titilliumWeb = Titillium_Web({
+  subsets: ['latin'],
+  weight: ['300', '400', '700'],
+  variable: '--font-titillium-web',
+});
 
 export const metadata: Metadata = {
   title: 'Intranet FUNEV',
@@ -18,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable}`}>
+    <html lang="pt-BR" className={`${titilliumWeb.variable}`}>
       <body className='flex flex-col min-h-screen'>
         <Header />
         <main className="container mx-auto p-6 mt-8 flex-grow">

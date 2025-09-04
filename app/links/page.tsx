@@ -8,7 +8,7 @@ import LinkCard from '../components/LinkCard';
 import SectionWrapper from '../components/SectionWrapper';
 // Importa isAuthenticated E getToken. O warning (6133) sobre getToken não lido é esperado se não for usado.
 import { isAuthenticated, getToken } from '../auth';
-import { buildStrapiUrl, API_CONFIG } from '../config/api';
+import { buildStrapiUrl } from '../config/api';
 
 export default function LinksPage() {
     const router = useRouter();
@@ -22,7 +22,7 @@ export default function LinksPage() {
         const fetchLinks = async () => {
             try {
 
-                const response = await fetch(buildStrapiUrl('/links?populate=icon'));
+                const response = await fetch(buildStrapiUrl('/links'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -31,7 +31,6 @@ export default function LinksPage() {
 
                 rawData.data?.forEach((item: any, index: number) => {
                     console.log(`Link ${index} (Links Page):`, item);
-                    console.log(`Icon do Link ${index} (Links Page):`, item.icon);
                 });
 
                 // CORREÇÃO: Verificar se rawData.data é um array
@@ -48,33 +47,12 @@ export default function LinksPage() {
                         return null;
                     }
 
-                    // CORREÇÃO: Log detalhado do processamento do ícone
                     console.log('Processando item (Links Page):', item);
-                    console.log('Ícone original (Links Page):', item.icon);
-
-                    // CORREÇÃO: Extrair URL do ícone corretamente baseado na estrutura do Strapi v5
-                    let iconData = null;
-
-                    if (item.icon) {
-                        if (item.icon.url) {
-                            // Strapi v5 formato direto
-                            iconData = `${API_CONFIG.strapi}${item.icon.url}`;
-                        } else if (item.icon.data && item.icon.data.attributes && item.icon.data.attributes.url) {
-                            // Strapi v4 formato
-                            iconData = `${API_CONFIG.strapi}${item.icon.data.attributes.url}`;
-                        } else {
-                            // Se icon for um objeto complexo, vamos logar para debug
-                            console.log('Estrutura do ícone não reconhecida (Links Page):', item.icon);
-                        }
-                    }
-
-                    console.log('URL final do ícone (Links Page):', iconData);
 
                     return {
                         id: item.id,
                         title: item.title || 'Título Indisponível',
                         url: item.url || '#',
-                        icon: iconData, // Usar iconData processado corretamente
                     };
                 }).filter(Boolean); // Remove itens null
 

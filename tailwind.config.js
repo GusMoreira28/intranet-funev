@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['Inter', 'sans-serif'],
+        sans: ['var(--font-titillium-web)', 'sans-serif'],
       }
     },
   },

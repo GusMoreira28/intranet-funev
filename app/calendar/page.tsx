@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Event } from '../data/events';
 import EventCard from '../components/EventCard';
 import SectionWrapper from '../components/SectionWrapper';
-import { isAuthenticated, getToken } from '../auth'; // Importa funções de autenticação
-import { buildStrapiUrl } from '../config/api';
+import { isAuthenticated } from '../auth'; // Importa funções de autenticação
+import { buildStrapiUrl, API_CONFIG } from '../config/api';
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -35,19 +35,40 @@ export default function CalendarPage() {
 
         const fetchEvents = async () => {
             try {
-                const response = await fetch(buildStrapiUrl('/events'));
+                const response = await fetch(buildStrapiUrl('/events?populate=banner'));
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
-                const transformedEvents: Event[] = rawData.data.map((item: any) => ({
-                    id: item.id,
-                    title: item.title,
-                    date: item.date,
-                    time: item.time,
-                    location: item.location,
-                    topic: item.topic,
-                }));
+                const transformedEvents: Event[] = rawData.data.map((item: any) => {
+                    if (!item || typeof item.documentId === 'undefined') {
+                        console.warn("Item de comunicado inválido ou sem ID:", item);
+                        return null;
+                    }
+                    let bannerData = null;
+
+                    if (item.banner) {
+                        if (item.banner.url) {
+                            // Strapi v5 formato direto
+                            bannerData = `${API_CONFIG.strapi}${item.banner.url}`;
+                        } else if (item.banner.data && item.banner.data.attributes && item.banner.data.attributes.url) {
+                            // Strapi v4 formato
+                            bannerData = `${API_CONFIG.strapi}${item.banner.data.attributes.url}`;
+                        } else {
+                            // Se banner for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do conteúdo não reconhecida (Comunicados Page):', item.content);
+                        }
+                    }
+
+                    console.log('URL final do banner (Eventos Page):', bannerData);
+
+                    return {
+                        id: item.documentId,
+                        title: item.title,
+                        date: item.date,
+                        banner: bannerData,
+                    };
+                }).filter(Boolean);
                 setEvents(transformedEvents);
             } catch (err) {
                 if (err instanceof Error) { setError(err.message); console.error("Erro ao buscar eventos do Strapi:", err); } else { setError("Ocorreu um erro desconhecido ao buscar eventos do Strapi."); console.error("Erro desconhecido ao buscar eventos do Strapi:", err); }
@@ -120,10 +141,9 @@ export default function CalendarPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {monthOrder.map(month => (
                         groupedEvents[month] && groupedEvents[month].length > 0 && (
-                            <div key={month} className="mb-8 p-4 rounded-lg shadow-sm"
-                                 style={{ backgroundColor: 'var(--color-funev-light)' }}>
+                            <div key={month} className="mb-8 p-4 rounded-lg">
                                 <h3 className="text-xl font-bold mb-4 pb-2 border-b-2"
-                                    style={{ color: 'var(--color-funev-green)', borderColor: 'var(--color-funev-light)' }}>
+                                    style={{ color: 'var(--color-funev-blue)' }}>
                                     {month}
                                 </h3>
                                 <div className="grid grid-cols-1 gap-4">

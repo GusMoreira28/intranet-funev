@@ -22,12 +22,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, isSummary = false })
     };
 
     return (
-        <div className="p-4 rounded-lg shadow-md" style={{ backgroundColor: 'var(--color-funev-light)' }}>
-            <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--color-funev-dark)' }}>{article.title}</h3>
+        <div className="p-4 rounded-lg " >
+            <h3 className="font-bold text-2xl mb-2" style={{ color: 'var(--color-funev-dark)' }}>{article.title}</h3>
             {isSummary ? (
-                <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{article.summary}</p>
+                <p className="text-sm" style={{ color: 'var(--color-funev-gray)' }}>{article.summary}</p>
             ) : (
-                <p className="text-sm" style={{ color: 'var(--color-funev-dark)' }}>{article.content.substring(0, 150)}...</p>
+                <p className="text-sm" style={{ color: 'var(--color-funev-gray)' }}>{article.content.substring(0, 150)}...</p>
             )}
             <Link href={articleHref} className="hover:underline text-sm mt-2 block text-left transition duration-300"
                    style={{ color: 'var(--color-funev-dark)' }}
