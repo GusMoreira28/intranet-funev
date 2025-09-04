@@ -76,7 +76,7 @@ export default function NewWikiArticlePage() {
                     }
 
                     console.log('MyCustomUploadAdapter: Tentando upload para Strapi...');
-                    fetch(buildStrapiUrl('/api/upload'), { // Endpoint de upload do Strapi
+                    fetch(buildStrapiUrl('/upload'), { // Endpoint de upload do Strapi
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`, // Inclui o token JWT

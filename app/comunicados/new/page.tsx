@@ -64,7 +64,7 @@ export default function NewAnnouncementPage() {
             formData.append('files', selectedImage);
 
             console.log("Iniciando upload de imagem para Strapi...");
-            const uploadResponse = await fetch('http://localhost:1337/api/upload', {
+            const uploadResponse = await fetch(buildStrapiUrl('/upload'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`, // Autentica o upload

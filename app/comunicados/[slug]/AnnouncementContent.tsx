@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Announcement } from '../../data/announcements';
 import SectionWrapper from '../../components/SectionWrapper';
 import Image from 'next/image'; // Importa Image
-import { buildStrapiUrl } from '@/app/config/api';
+import { buildStrapiUrl, API_CONFIG } from '@/app/config/api';
+
 
 interface AnnouncementContentProps {
     slug: string; // Recebe o slug (que é o documentId) como prop
@@ -15,51 +16,75 @@ interface AnnouncementContentProps {
 const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
     const router = useRouter();
     const [announcement, setAnnouncement] = useState<Announcement | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(true);
+    const [errorAnnouncements, setErrorAnnouncements] = useState<string | null>(null);
 
     useEffect(() => {
         if (!slug) {
-            setError("Slug do comunicado não fornecido.");
-            setLoading(false);
+            setErrorAnnouncements("Slug do comunicado não fornecido.");
+            setLoadingAnnouncements(false);
             return;
         }
 
         const fetchAnnouncement = async () => {
             try {
                 // Busca um comunicado específico pelo documentId via filtro
-                const response = await fetch(buildStrapiUrl(`/announcements?populate=content&filters[documentId][$eq]=${slug}`));
+                const response = await fetch(buildStrapiUrl('/announcements?populate=content'));
                 if (!response.ok) {
-                    if (response.status === 404) {
-                        setAnnouncement(null);
-                        return;
-                    }
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
                 const rawData = await response.json();
-                console.log("Dados brutos do Comunicado do Strapi (Single Page):", rawData);
+                console.log("Dados brutos de Comunicados do Strapi (Lista):", rawData);
 
-                if (!rawData.data || rawData.data.length === 0) {
-                    setAnnouncement(null);
+                if (!Array.isArray(rawData.data)) {
+                    console.error("rawData.data não é um array para comunicados:", rawData.data);
+                    setErrorAnnouncements("Formato de dados de comunicados inesperado.");
+                    setLoadingAnnouncements(false);
                     return;
                 }
 
-                const item = rawData.data[0]; // Pega o primeiro item do array retornado pelo filtro
+                const transformedAnnouncements: Announcement[] = rawData.data.map((item: any) => {
+                    if (!item || typeof item.id === 'undefined') {
+                        console.warn("Item de comunicado inválido ou sem ID:", item);
+                        return null;
+                    }
 
-                const transformedAnnouncement: Announcement = {
-                    id: item.id.toString(),
-                    documentId: item.documentId || item.id.toString(),
-                    title: item.title || 'Título Indisponível',
-                    content: item.content || null, // <<< content agora é o objeto de mídia ou null
-                    author: item.author || 'Autor Desconhecido',
-                    date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
-                };
-                setAnnouncement(transformedAnnouncement);
+                    let contentData = null;
+
+                    if (item.content) {
+                        if (item.content.url) {
+                            // Strapi v5 formato direto
+                            contentData = `${API_CONFIG.strapi}${item.content.url}`;
+                        } else if (item.content.data && item.content.data.attributes && item.content.data.attributes.url) {
+                            // Strapi v4 formato
+                            contentData = `${API_CONFIG.strapi}${item.content.data.attributes.url}`;
+                        } else {
+                            // Se content for um objeto complexo, vamos logar para debug
+                            console.log('Estrutura do conteúdo não reconhecida (Comunicados Page):', item.content);
+                        }
+                    }
+
+                    console.log('URL final do conteúdo (Comunicados Page):', contentData);
+                    // Mapeamento direto dos campos
+                    return {
+                        id: item.id.toString(),
+                        documentId: item.documentId || item.id.toString(),
+                        title: item.title || 'Título Indisponível',
+                        content: contentData || null, // <<< content agora é o objeto de mídia
+                        author: item.author || 'Autor Desconhecido',
+                        date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
+                        description: item.description || 'Descrição Indisponível',
+                    };
+                }).filter(Boolean);
+
+                // Encontra o comunicado pelo slug (documentId)
+                const foundAnnouncement = transformedAnnouncements.find(a => a.documentId === slug);
+                setAnnouncement(foundAnnouncement || null);
 
             } catch (err) {
-                if (err instanceof Error) { setError(err.message); console.error("Erro ao buscar comunicado:", err); } else { setError("Ocorreu um erro desconhecido ao buscar comunicado."); console.error("Erro desconhecido ao buscar comunicado.", err); }
+                if (err instanceof Error) { setErrorAnnouncements(err.message); console.error("Erro ao buscar comunicado:", err); } else { setErrorAnnouncements("Ocorreu um erro desconhecido ao buscar comunicado."); console.error("Erro desconhecido ao buscar comunicado.", err); }
             } finally {
-                setLoading(false);
+                setLoadingAnnouncements(false);
             }
         };
         fetchAnnouncement();
@@ -73,7 +98,7 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
         }
     };
 
-    if (loading) {
+    if (loadingAnnouncements) {
         return (
             <SectionWrapper title="Carregando Comunicado..." titleColor="var(--color-funev-blue)">
                 <p className="text-center" style={{ color: 'var(--color-funev-dark)' }}>Aguarde...</p>
@@ -81,10 +106,10 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
         );
     }
 
-    if (error) {
+    if (errorAnnouncements) {
         return (
             <SectionWrapper title="Erro ao Carregar Comunicado" titleColor="red">
-                <p className="text-center" style={{ color: 'red' }}>{error}</p>
+                <p className="text-center" style={{ color: 'red' }}>{errorAnnouncements}</p>
                 <button
                     onClick={() => router.push('/comunicados')}
                     className="mt-6 px-6 py-3 rounded-md shadow-md transition duration-300"
