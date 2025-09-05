@@ -57,7 +57,7 @@ export default function LinksPage() {
                 }).filter(Boolean); // Remove itens null
 
                 console.log('Links transformados (Links Page):', transformedLinks);
-                setLinks(transformedLinks.slice(0, 4));
+                setLinks(transformedLinks);
             } catch (err) {
                 if (err instanceof Error) {
                     setError(err.message);

@@ -188,7 +188,7 @@ export default function HomePage() {
                     const capitalizedEventMonth = eventMonth.charAt(0).toUpperCase() + eventMonth.slice(1);
                     return capitalizedEventMonth === capitalizedCurrentMonth;
                 }).filter(Boolean);
-                setCurrentMonthEvents(filteredEvents);
+                setCurrentMonthEvents(filteredEvents.slice(0, 2)); // Pega os 2 primeiros eventos do mês
             } catch (err) {
                 if (err instanceof Error) { setErrorEvents(err.message); console.error("Erro ao buscar eventos do mês do Strapi:", err); } else { setErrorEvents("Ocorreu um erro desconhecido ao buscar eventos do Strapi."); console.error("Erro desconhecido ao buscar eventos do Strapi:", err); }
             } finally {
@@ -357,7 +357,7 @@ export default function HomePage() {
                     };
                 }).filter(Boolean);
 
-                setHomeAnnouncements(transformedAnnouncements);
+                setHomeAnnouncements(transformedAnnouncements.slice(0, 3)); // Pega os 3 primeiros comunicados para a Home
             } catch (err) {
                 if (err instanceof Error) { setError(err.message); console.error("Erro ao buscar comunicados:", err); } else { setError("Ocorreu um erro desconhecido ao buscar comunicados."); console.error("Erro desconhecido ao buscar comunicados:", err); }
             } finally {
