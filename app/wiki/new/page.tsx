@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 // Importa os tipos do CKEditor para uso no código
 import { CKEditor as CKEditorComponent } from '@ckeditor/ckeditor5-react';
 import { EditorConfig } from '@ckeditor/ckeditor5-core'; // Para tipagem do config
-import { buildStrapiUrl } from '@/app/config/api';
+import { buildStrapiUrl, API_CONFIG } from '@/app/config/api';
 
 // Carrega o componente CKEditor dinamicamente e desabilita SSR.
 // O ClassicEditor será importado *dentro* do `then` para garantir que só ocorra no cliente.
@@ -39,7 +39,6 @@ const CKEditor = dynamic(
     }
 );
 
-
 export default function NewWikiArticlePage() {
     const router = useRouter();
     const [title, setTitle] = useState('');
@@ -55,69 +54,130 @@ export default function NewWikiArticlePage() {
         }
     }, [router]);
 
-    // Configuração do Plugin de Upload de Imagem para o CKEditor
+    // Configuração do Plugin de Upload de Imagem para o CKEditor - VERSÃO MELHORADA
     class MyCustomUploadAdapter {
-        loader: any;
+        private loader: any;
+        
         constructor(loader: any) {
             this.loader = loader;
         }
 
-        upload() {
+        upload(): Promise<{ default: string }> {
             return this.loader.file
-                .then((file: File) => new Promise((resolve, reject) => {
-                    const formData = new FormData();
-                    formData.append('files', file); // 'files' é o nome do campo que o Strapi espera para upload
-
-                    const token = getToken(); // Obtém o token JWT para autenticar o upload
-                    if (!token) {
-                        console.error('MyCustomUploadAdapter: Token de autenticação ausente.');
-                        reject('Token de autenticação ausente para upload.');
+                .then((file: File) => new Promise<{ default: string }>((resolve, reject) => {
+                    // Validação do arquivo
+                    if (!file) {
+                        reject(new Error('Nenhum arquivo selecionado'));
                         return;
                     }
 
-                    console.log('MyCustomUploadAdapter: Tentando upload para Strapi...');
-                    fetch(buildStrapiUrl('/upload'), { // Endpoint de upload do Strapi
+                    // Validação do tipo de arquivo
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        reject(new Error('Tipo de arquivo não suportado. Use JPEG, PNG, GIF ou WebP.'));
+                        return;
+                    }
+
+                    // Validação do tamanho (exemplo: máximo 5MB)
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    if (file.size > maxSize) {
+                        reject(new Error('Arquivo muito grande. Tamanho máximo: 5MB.'));
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('files', file);
+
+                    const token = getToken();
+                    if (!token) {
+                        console.error('MyCustomUploadAdapter: Token de autenticação ausente.');
+                        reject(new Error('Token de autenticação ausente para upload.'));
+                        return;
+                    }
+
+                    console.log('MyCustomUploadAdapter: Iniciando upload...', {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type
+                    });
+
+                    fetch(buildStrapiUrl('/upload'), {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${token}`, // Inclui o token JWT
+                            'Authorization': `Bearer ${token}`,
                         },
                         body: formData,
                     })
                     .then(response => {
-                        console.log('MyCustomUploadAdapter: Resposta do upload - Status:', response.status, 'StatusText:', response.statusText);
+                        console.log('MyCustomUploadAdapter: Status da resposta:', response.status);
+                        
                         if (!response.ok) {
                             return response.text().then(text => {
-                                console.error('MyCustomUploadAdapter: Resposta de erro bruta:', text);
-                                throw new Error(`Falha no upload da imagem: ${response.status} ${response.statusText} - ${text.substring(0, 100)}...`);
+                                console.error('MyCustomUploadAdapter: Erro na resposta:', text);
+                                throw new Error(`Falha no upload: ${response.status} - ${text.substring(0, 100)}`);
                             });
                         }
+                        
                         return response.json();
                     })
                     .then(data => {
-                        if (data && Array.isArray(data) && data[0] && data[0].url) {
-                            resolve({
-                                default: `${buildStrapiUrl(data[0].url)}` // URL completa da imagem hospedada pelo Strapi
-                            });
+                        console.log('MyCustomUploadAdapter: Dados recebidos completos:', JSON.stringify(data, null, 2));
+                        
+                        if (data && Array.isArray(data) && data.length > 0 && data[0]) {
+                            const fileData = data[0];
+                            console.log('MyCustomUploadAdapter: Dados do arquivo:', fileData);
+                            
+                            // Tenta diferentes propriedades da resposta do Strapi
+                            let imageUrl = '';
+                            
+                            if (fileData.url) {
+                                imageUrl = `${API_CONFIG.strapi}${fileData.url}`;
+                            } else if (fileData.formats && fileData.formats.small) {
+                                imageUrl = buildStrapiUrl(fileData.formats.small.url);
+                            } else if (fileData.formats && fileData.formats.thumbnail) {
+                                imageUrl = buildStrapiUrl(fileData.formats.thumbnail.url);
+                            } else {
+                                console.error('MyCustomUploadAdapter: URL não encontrada nos dados:', fileData);
+                                reject(new Error('URL da imagem não encontrada na resposta do servidor.'));
+                                return;
+                            }
+                            
+                            console.log('MyCustomUploadAdapter: URL final da imagem:', imageUrl);
+                            
+                            // Testa se a URL é acessível
+                            const testImage = new Image();
+                            testImage.onload = () => {
+                                console.log('MyCustomUploadAdapter: Imagem carregada com sucesso!');
+                                resolve({
+                                    default: imageUrl
+                                });
+                            };
+                            testImage.onerror = () => {
+                                console.error('MyCustomUploadAdapter: Falha ao carregar imagem da URL:', imageUrl);
+                                reject(new Error(`Não foi possível carregar a imagem da URL: ${imageUrl}`));
+                            };
+                            testImage.src = imageUrl;
+                            
                         } else {
-                            reject('Falha no upload da imagem para o Strapi: Resposta inesperada.');
+                            console.error('MyCustomUploadAdapter: Resposta inesperada do Strapi:', data);
+                            reject(new Error('Resposta inesperada do servidor. Verifique se o upload foi configurado corretamente no Strapi.'));
                         }
                     })
                     .catch(error => {
-                        console.error('MyCustomUploadAdapter: Erro no upload da imagem para o Strapi:', error);
-                        reject('Erro no upload da imagem: ' + (error.message || 'Erro desconhecido.'));
+                        console.error('MyCustomUploadAdapter: Erro no upload:', error);
+                        reject(error);
                     });
                 }));
         }
 
         abort() {
-            // Implementar lógica de abortar upload, se necessário
+            // Implementar lógica de abortar upload se necessário
+            console.log('MyCustomUploadAdapter: Upload abortado');
         }
     }
 
-    // A função MyCustomUploadAdapterPlugin precisa ser definida aqui,
-    // pois ela é usada na configuração do CKEditor.
-    // Certifique-se de que 'editor' é tipado corretamente se o TypeScript reclamar.
-    function MyCustomUploadAdapterPlugin(editor: any) { // 'any' para simplicidade com tipagem complexa do CKEditor
+    // Plugin melhorado
+    function MyCustomUploadAdapterPlugin(editor: any) {
         editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
             return new MyCustomUploadAdapter(loader);
         };
@@ -234,7 +294,7 @@ export default function NewWikiArticlePage() {
                                style={{ color: 'var(--color-funev-dark)' }}>
                             Conteúdo:
                         </label>
-                        {/* Renderiza o CKEditor */}
+                        {/* Renderiza o CKEditor com configuração completa */}
                         <CKEditor
                             data={content}
                             onChange={(event: any, editor: any) => {
@@ -242,8 +302,89 @@ export default function NewWikiArticlePage() {
                                 setContent(data);
                             }}
                             config={{
-                                extraPlugins: [MyCustomUploadAdapterPlugin], // Adiciona o plugin de upload customizado
-                                // Você pode adicionar mais configurações aqui, como toolbar, etc.
+                                // Plugins essenciais para imagem
+                                extraPlugins: [MyCustomUploadAdapterPlugin],
+                                
+                                // Configuração da toolbar com botões de imagem
+                                toolbar: {
+                                    items: [
+                                        'heading',
+                                        '|',
+                                        'bold',
+                                        'italic',
+                                        'link',
+                                        'bulletedList',
+                                        'numberedList',
+                                        '|',
+                                        'outdent',
+                                        'indent',
+                                        '|',
+                                        'imageUpload', // Botão para upload de imagem
+                                        'blockQuote',
+                                        'insertTable',
+                                        'mediaEmbed',
+                                        'undo',
+                                        'redo'
+                                    ]
+                                },
+                                
+                                // Configurações específicas para imagem
+                                image: {
+                                    toolbar: [
+                                        'imageTextAlternative',
+                                        'imageStyle:full',
+                                        'imageStyle:side',
+                                        '|',
+                                        'linkImage'
+                                    ],
+                                    // Configurações adicionais para melhor compatibilidade
+                                    styles: [
+                                        'full',
+                                        'side',
+                                        'alignLeft',
+                                        'alignCenter',
+                                        'alignRight'
+                                    ],
+                                    resizeOptions: [
+                                        {
+                                            name: 'resizeImage:original',
+                                            value: null,
+                                            label: 'Original'
+                                        },
+                                        {
+                                            name: 'resizeImage:50',
+                                            value: '50',
+                                            label: '50%'
+                                        },
+                                        {
+                                            name: 'resizeImage:75',
+                                            value: '75',
+                                            label: '75%'
+                                        }
+                                    ]
+                                },
+                                
+                                // Configuração da tabela (opcional)
+                                table: {
+                                    contentToolbar: [
+                                        'tableColumn',
+                                        'tableRow',
+                                        'mergeTableCells'
+                                    ]
+                                },
+                                
+                                // Configuração de linguagem (opcional)
+                                language: 'pt',
+                                
+                                // Configurações de parágrafo
+                                heading: {
+                                    options: [
+                                        { model: 'paragraph', title: 'Parágrafo', class: 'ck-heading_paragraph' },
+                                        { model: 'heading1', view: 'h1', title: 'Título 1', class: 'ck-heading_heading1' },
+                                        { model: 'heading2', view: 'h2', title: 'Título 2', class: 'ck-heading_heading2' },
+                                        { model: 'heading3', view: 'h3', title: 'Título 3', class: 'ck-heading_heading3' }
+                                    ]
+                                }
                             }}
                         />
                     </div>
