@@ -7,7 +7,8 @@ export interface StrapiMedia {
     width?: number;
     height?: number;
     formats?: any;
-    // Adicione outras propriedades se precisar
+    mime?: string;
+    size?: number;
 }
 
 export interface WikiArticle {
@@ -17,6 +18,7 @@ export interface WikiArticle {
     summary: string;
     content: string; // Este campo já contém as imagens como HTML quando feitas via CKEditor
     date: string;
+    pdf?: StrapiMedia | null; // PDF associado ao artigo, se houver
     
     // Campos opcionais para imagens específicas
     featuredImage?: StrapiMedia | null; // Imagem de destaque do artigo

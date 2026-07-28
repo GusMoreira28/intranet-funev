@@ -21,7 +21,7 @@ export default function WikiPage() {
         setIsLoggedIn(isAuthenticated());
         const fetchWikiArticles = async () => {
             try {
-                const response = await fetch(buildStrapiUrl('/wiki-articles')); // Endpoint do Strapi para Wiki
+                const response = await fetch(buildStrapiUrl('/wiki-articles?=populate=pdf')); // Endpoint do Strapi para Wiki
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
@@ -54,6 +54,7 @@ export default function WikiPage() {
                         summary: item.summary || item.content?.substring(0, 150) + '...' || 'Resumo Indisponível', // Fallback
                         content: item.content || '',
                         date: new Date(item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
+                        pdf: item.pdf || null,
                     };
                 }).filter(Boolean); // Filtra quaisquer itens nulos
 

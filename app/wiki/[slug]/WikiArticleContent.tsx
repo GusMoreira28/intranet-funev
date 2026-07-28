@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { WikiArticle } from '../../data/wikiArticles';
 import SectionWrapper from '../../components/SectionWrapper';
-import { buildStrapiUrl } from '../../config/api';
+import { buildStrapiUrl, buildStrapiMediaUrl } from '../../config/api';
 // import DOMPurify from 'dompurify'; // Para sanitização em produção: npm install dompurify
 
 interface WikiArticleContentProps {
@@ -28,7 +28,11 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
 
         const fetchArticle = async () => {
             try {
-                const response = await fetch(buildStrapiUrl(`/wiki-articles?filters[documentId][$eq]=${slug}`));
+                const response = await fetch(
+                    buildStrapiUrl(
+                        `/wiki-articles?filters[documentId][$eq]=${slug}&populate=pdf`
+                    )
+                );
                 if (!response.ok) {
                     if (response.status === 404) {
                         setArticle(null);
@@ -38,13 +42,25 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
                 }
                 const rawData = await response.json();
                 console.log("Dados brutos do Artigo da Wiki do Strapi (Single Page):", rawData);
-                
+
                 if (!rawData.data || rawData.data.length === 0) {
                     setArticle(null);
                     return;
                 }
 
                 const item = rawData.data[0];
+
+                let pdfData: any = null;
+
+                if (item.pdf?.url) {
+                    pdfData = {
+                        id: item.pdf.id || 0,
+                        name: item.pdf.name || 'Documento anexo',
+                        url: item.pdf.url.startsWith('http')
+                            ? item.pdf.url
+                            : buildStrapiMediaUrl(item.pdf.url),
+                    };
+                }
 
                 const transformedArticle: WikiArticle = {
                     id: item.id.toString(),
@@ -53,6 +69,7 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
                     summary: item.summary || item.content?.substring(0, 150) + '...' || 'Resumo Indisponível',
                     content: item.content || '',
                     date: new Date(item.date || item.updatedAt || item.createdAt).toLocaleDateString('pt-BR'),
+                    pdf: pdfData,
                 };
                 setArticle(transformedArticle);
 
@@ -132,9 +149,34 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
             <p className="text-sm italic mb-6" style={{ color: 'var(--color-funev-dark)' }}>{article.date}</p>
             {/* Renderiza o conteúdo HTML */}
             <div className="prose max-w-none" style={{ color: 'var(--color-funev-dark)' }}
-                 dangerouslySetInnerHTML={{ __html: article.content }}></div>
+                dangerouslySetInnerHTML={{ __html: article.content }}></div>
             {/* Para produção, use: dangerouslySetInnerHTML={{ __html: sanitizedContent }}> */}
-        </SectionWrapper>
+            {article.pdf && article.pdf.url && (
+                <div className="mt-8">
+                    <h3
+                        className="text-lg font-bold mb-4"
+                        style={{ color: 'var(--color-funev-dark)' }}
+                    >
+                        Documento anexo
+                    </h3>
+
+                    <p
+                        className="text-sm mb-4"
+                        style={{ color: 'var(--color-funev-gray)' }}
+                    >
+                        {article.pdf.name}
+                    </p>
+
+                    <div className="w-full h-[800px] rounded-lg overflow-hidden border shadow-md">
+                        <iframe
+                            src={article.pdf.url}
+                            title={article.pdf.name || 'Documento PDF'}
+                            className="w-full h-full"
+                        />
+                    </div>
+                </div>
+            )}
+        </SectionWrapper >
     );
 }
 

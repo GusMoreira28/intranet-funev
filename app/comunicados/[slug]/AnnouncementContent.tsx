@@ -155,14 +155,13 @@ const AnnouncementContent: React.FC<AnnouncementContentProps> = ({ slug }) => {
                 Por {announcement.author} em {announcement.date}
             </p>
             {/* Renderiza a imagem do comunicado */}
-            {announcement.content && announcement.content.url && ( // Verifica se content e content.url existem
-                <div className="relative w-full h-200 mb-3 rounded-md overflow-hidden">
+            {announcement.content && (
+                <div className="relative w-full h-[500px] mb-3 rounded-md overflow-hidden">
                     <Image
-                        src={`http://localhost:1337${announcement.content.url}`}
+                        src={announcement.content as unknown as string}
                         alt={announcement.title}
-                        layout="fill"
-                        objectFit="contain"
-                        className="rounded-md"
+                        fill
+                        className="rounded-md object-contain"
                     />
                 </div>
             )}

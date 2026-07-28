@@ -33,9 +33,9 @@ const CKEditor = dynamic(
         };
         return EditorWrapper;
     },
-    { 
+    {
         ssr: false, // CRÍTICO: Desabilita a renderização no servidor para este componente
-        loading: () => <p style={{color: 'var(--color-funev-dark)'}}>Carregando editor de conteúdo...</p> 
+        loading: () => <p style={{ color: 'var(--color-funev-dark)' }}>Carregando editor de conteúdo...</p>
     }
 );
 
@@ -44,6 +44,7 @@ export default function NewWikiArticlePage() {
     const [title, setTitle] = useState('');
     const [summary, setSummary] = useState('');
     const [content, setContent] = useState(''); // Conteúdo HTML do editor
+    const [pdf, setPdf] = useState<File | null>(null); // Arquivo PDF selecionado
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function NewWikiArticlePage() {
     // Configuração do Plugin de Upload de Imagem para o CKEditor - VERSÃO MELHORADA
     class MyCustomUploadAdapter {
         private loader: any;
-        
+
         constructor(loader: any) {
             this.loader = loader;
         }
@@ -108,65 +109,65 @@ export default function NewWikiArticlePage() {
                         },
                         body: formData,
                     })
-                    .then(response => {
-                        console.log('MyCustomUploadAdapter: Status da resposta:', response.status);
-                        
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                console.error('MyCustomUploadAdapter: Erro na resposta:', text);
-                                throw new Error(`Falha no upload: ${response.status} - ${text.substring(0, 100)}`);
-                            });
-                        }
-                        
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('MyCustomUploadAdapter: Dados recebidos completos:', JSON.stringify(data, null, 2));
-                        
-                        if (data && Array.isArray(data) && data.length > 0 && data[0]) {
-                            const fileData = data[0];
-                            console.log('MyCustomUploadAdapter: Dados do arquivo:', fileData);
-                            
-                            // Tenta diferentes propriedades da resposta do Strapi
-                            let imageUrl = '';
-                            
-                            if (fileData.url) {
-                                imageUrl = `${API_CONFIG.strapi}${fileData.url}`;
-                            } else if (fileData.formats && fileData.formats.small) {
-                                imageUrl = buildStrapiUrl(fileData.formats.small.url);
-                            } else if (fileData.formats && fileData.formats.thumbnail) {
-                                imageUrl = buildStrapiUrl(fileData.formats.thumbnail.url);
-                            } else {
-                                console.error('MyCustomUploadAdapter: URL não encontrada nos dados:', fileData);
-                                reject(new Error('URL da imagem não encontrada na resposta do servidor.'));
-                                return;
-                            }
-                            
-                            console.log('MyCustomUploadAdapter: URL final da imagem:', imageUrl);
-                            
-                            // Testa se a URL é acessível
-                            const testImage = new Image();
-                            testImage.onload = () => {
-                                console.log('MyCustomUploadAdapter: Imagem carregada com sucesso!');
-                                resolve({
-                                    default: imageUrl
+                        .then(response => {
+                            console.log('MyCustomUploadAdapter: Status da resposta:', response.status);
+
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    console.error('MyCustomUploadAdapter: Erro na resposta:', text);
+                                    throw new Error(`Falha no upload: ${response.status} - ${text.substring(0, 100)}`);
                                 });
-                            };
-                            testImage.onerror = () => {
-                                console.error('MyCustomUploadAdapter: Falha ao carregar imagem da URL:', imageUrl);
-                                reject(new Error(`Não foi possível carregar a imagem da URL: ${imageUrl}`));
-                            };
-                            testImage.src = imageUrl;
-                            
-                        } else {
-                            console.error('MyCustomUploadAdapter: Resposta inesperada do Strapi:', data);
-                            reject(new Error('Resposta inesperada do servidor. Verifique se o upload foi configurado corretamente no Strapi.'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('MyCustomUploadAdapter: Erro no upload:', error);
-                        reject(error);
-                    });
+                            }
+
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('MyCustomUploadAdapter: Dados recebidos completos:', JSON.stringify(data, null, 2));
+
+                            if (data && Array.isArray(data) && data.length > 0 && data[0]) {
+                                const fileData = data[0];
+                                console.log('MyCustomUploadAdapter: Dados do arquivo:', fileData);
+
+                                // Tenta diferentes propriedades da resposta do Strapi
+                                let imageUrl = '';
+
+                                if (fileData.url) {
+                                    imageUrl = `${API_CONFIG.strapi}${fileData.url}`;
+                                } else if (fileData.formats && fileData.formats.small) {
+                                    imageUrl = buildStrapiUrl(fileData.formats.small.url);
+                                } else if (fileData.formats && fileData.formats.thumbnail) {
+                                    imageUrl = buildStrapiUrl(fileData.formats.thumbnail.url);
+                                } else {
+                                    console.error('MyCustomUploadAdapter: URL não encontrada nos dados:', fileData);
+                                    reject(new Error('URL da imagem não encontrada na resposta do servidor.'));
+                                    return;
+                                }
+
+                                console.log('MyCustomUploadAdapter: URL final da imagem:', imageUrl);
+
+                                // Testa se a URL é acessível
+                                const testImage = new Image();
+                                testImage.onload = () => {
+                                    console.log('MyCustomUploadAdapter: Imagem carregada com sucesso!');
+                                    resolve({
+                                        default: imageUrl
+                                    });
+                                };
+                                testImage.onerror = () => {
+                                    console.error('MyCustomUploadAdapter: Falha ao carregar imagem da URL:', imageUrl);
+                                    reject(new Error(`Não foi possível carregar a imagem da URL: ${imageUrl}`));
+                                };
+                                testImage.src = imageUrl;
+
+                            } else {
+                                console.error('MyCustomUploadAdapter: Resposta inesperada do Strapi:', data);
+                                reject(new Error('Resposta inesperada do servidor. Verifique se o upload foi configurado corretamente no Strapi.'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('MyCustomUploadAdapter: Erro no upload:', error);
+                            reject(error);
+                        });
                 }));
         }
 
@@ -183,57 +184,155 @@ export default function NewWikiArticlePage() {
         };
     }
 
+    const uploadPdf = async (file: File): Promise<number> => {
+        const token = getToken();
+
+        if (!token) {
+            throw new Error('Token de autenticação ausente.');
+        }
+
+        const formData = new FormData();
+        formData.append('files', file);
+
+        const response = await fetch(buildStrapiUrl('/upload'), {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erro no upload do PDF:', errorText);
+
+            throw new Error(
+                `Falha ao fazer upload do PDF: ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || !data[0]?.id) {
+            throw new Error(
+                'Resposta inesperada ao fazer upload do PDF.'
+            );
+        }
+
+        return data[0].id;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         setLoading(true);
         setError(null);
         setSuccess(null);
 
         const token = getToken();
+
         if (!token) {
-            setError('Sessão expirada ou credenciais ausentes. Por favor, faça login novamente.');
+            setError(
+                'Sessão expirada ou credenciais ausentes. Por favor, faça login novamente.'
+            );
+
             setLoading(false);
             router.push('/login');
             return;
         }
 
         try {
-            const response = await fetch(buildStrapiUrl('/wiki-articles'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    data: {
-                        title,
-                        summary,
-                        content, // Envia o conteúdo HTML do editor
+            let pdfId: number | null = null;
+
+            // 1. Faz upload do PDF, caso tenha sido selecionado
+            if (pdf) {
+                // Validação do tipo
+                if (pdf.type !== 'application/pdf') {
+                    throw new Error(
+                        'Arquivo inválido. Selecione apenas arquivos PDF.'
+                    );
+                }
+
+                // Validação do tamanho: 10 MB
+                const maxSize = 10 * 1024 * 1024;
+
+                if (pdf.size > maxSize) {
+                    throw new Error(
+                        'O PDF é muito grande. O tamanho máximo permitido é 10MB.'
+                    );
+                }
+
+                pdfId = await uploadPdf(pdf);
+            }
+
+            // 2. Cria o artigo no Strapi
+            const response = await fetch(
+                buildStrapiUrl('/wiki-articles'),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
-                }),
-            });
+                    body: JSON.stringify({
+                        data: {
+                            title,
+                            summary,
+                            content,
+
+                            // Relaciona o PDF enviado ao campo Media
+                            ...(pdfId && {
+                                pdf: pdfId,
+                            }),
+                        },
+                    }),
+                }
+            );
 
             if (!response.ok) {
                 const errorData = await response.json();
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error('Credenciais inválidas ou permissão negada. Verifique seu login e permissões no Strapi.');
+
+                if (
+                    response.status === 401 ||
+                    response.status === 403
+                ) {
+                    throw new Error(
+                        'Credenciais inválidas ou permissão negada. Verifique seu login e permissões no Strapi.'
+                    );
                 }
-                throw new Error(errorData.error?.message || `Falha ao adicionar artigo: ${response.statusText}`);
+
+                throw new Error(
+                    errorData.error?.message ||
+                    `Falha ao adicionar artigo: ${response.statusText}`
+                );
             }
 
-            setSuccess('Artigo adicionado com sucesso!');
+            setSuccess(
+                'Artigo adicionado com sucesso!'
+            );
+
+            // Limpa o formulário
             setTitle('');
             setSummary('');
             setContent('');
+            setPdf(null);
+
+            // Volta para a Wiki
             router.push('/wiki');
 
         } catch (err) {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Ocorreu um erro desconhecido ao adicionar o artigo.');
+                setError(
+                    'Ocorreu um erro desconhecido ao adicionar o artigo.'
+                );
             }
-            console.error('Erro na submissão do artigo:', err);
+
+            console.error(
+                'Erro na submissão do artigo:',
+                err
+            );
         } finally {
             setLoading(false);
         }
@@ -260,11 +359,11 @@ export default function NewWikiArticlePage() {
             </button>
 
             <div className="mx-auto p-6 bg-white rounded-lg shadow-md"
-                 style={{ backgroundColor: 'var(--color-funev-light)', border: '1px solid var(--color-funev-green)' }}>
+                style={{ backgroundColor: 'var(--color-funev-light)', border: '1px solid var(--color-funev-green)' }}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
+                            style={{ color: 'var(--color-funev-dark)' }}>
                             Título:
                         </label>
                         <input
@@ -278,7 +377,7 @@ export default function NewWikiArticlePage() {
                     </div>
                     <div>
                         <label htmlFor="summary" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
+                            style={{ color: 'var(--color-funev-dark)' }}>
                             Resumo:
                         </label>
                         <textarea
@@ -291,7 +390,7 @@ export default function NewWikiArticlePage() {
                     </div>
                     <div>
                         <label htmlFor="content" className="block text-sm font-medium text-gray-700"
-                               style={{ color: 'var(--color-funev-dark)' }}>
+                            style={{ color: 'var(--color-funev-dark)' }}>
                             Conteúdo:
                         </label>
                         {/* Renderiza o CKEditor com configuração completa */}
@@ -304,7 +403,7 @@ export default function NewWikiArticlePage() {
                             config={{
                                 // Plugins essenciais para imagem
                                 extraPlugins: [MyCustomUploadAdapterPlugin],
-                                
+
                                 // Configuração da toolbar com botões de imagem
                                 toolbar: {
                                     items: [
@@ -327,7 +426,7 @@ export default function NewWikiArticlePage() {
                                         'redo'
                                     ]
                                 },
-                                
+
                                 // Configurações específicas para imagem
                                 image: {
                                     toolbar: [
@@ -363,7 +462,7 @@ export default function NewWikiArticlePage() {
                                         }
                                     ]
                                 },
-                                
+
                                 // Configuração da tabela (opcional)
                                 table: {
                                     contentToolbar: [
@@ -372,10 +471,10 @@ export default function NewWikiArticlePage() {
                                         'mergeTableCells'
                                     ]
                                 },
-                                
+
                                 // Configuração de linguagem (opcional)
                                 language: 'pt',
-                                
+
                                 // Configurações de parágrafo
                                 heading: {
                                     options: [
@@ -390,6 +489,48 @@ export default function NewWikiArticlePage() {
                     </div>
                     {error && <p className="text-red-500 text-sm">{error}</p>}
                     {success && <p className="text-green-600 text-sm">{success}</p>}
+                    <div>
+                        <label
+                            htmlFor="pdf"
+                            className="block text-sm font-medium text-gray-700"
+                            style={{
+                                color: 'var(--color-funev-dark)'
+                            }}
+                        >
+                            Anexar PDF:
+                        </label>
+
+                        <input
+                            type="file"
+                            id="pdf"
+                            accept="application/pdf,.pdf"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setPdf(file);
+                            }}
+                            className="mt-1 block w-full text-sm text-gray-700"
+                        />
+
+                        {pdf && (
+                            <p
+                                className="mt-2 text-sm"
+                                style={{
+                                    color: 'var(--color-funev-gray)'
+                                }}
+                            >
+                                Arquivo selecionado: {pdf.name}
+                            </p>
+                        )}
+
+                        <p
+                            className="mt-1 text-xs"
+                            style={{
+                                color: 'var(--color-funev-gray)'
+                            }}
+                        >
+                            Formato permitido: PDF. Tamanho máximo: 10MB.
+                        </p>
+                    </div>
                     <button
                         type="submit"
                         disabled={loading}
