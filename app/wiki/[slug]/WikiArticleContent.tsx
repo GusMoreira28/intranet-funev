@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { WikiArticle } from '../../data/wikiArticles';
 import SectionWrapper from '../../components/SectionWrapper';
+import PdfCanvasViewer from '../../components/PdfCanvasViewer';
 import { buildStrapiUrl, buildStrapiMediaUrl } from '../../config/api';
 // import DOMPurify from 'dompurify'; // Para sanitização em produção: npm install dompurify
 
@@ -153,27 +154,13 @@ const WikiArticleContent: React.FC<WikiArticleContentProps> = ({ slug }) => {
             {/* Para produção, use: dangerouslySetInnerHTML={{ __html: sanitizedContent }}> */}
             {article.pdf && article.pdf.url && (
                 <div className="mt-8">
-                    <h3
-                        className="text-lg font-bold mb-4"
-                        style={{ color: 'var(--color-funev-dark)' }}
-                    >
+                    <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-funev-dark)' }}>
                         Documento anexo
                     </h3>
-
-                    <p
-                        className="text-sm mb-4"
-                        style={{ color: 'var(--color-funev-gray)' }}
-                    >
+                    <p className="text-sm mb-4" style={{ color: 'var(--color-funev-gray)' }}>
                         {article.pdf.name}
                     </p>
-
-                    <div className="w-full h-[800px] rounded-lg overflow-hidden border shadow-md">
-                        <iframe
-                            src={article.pdf.url}
-                            title={article.pdf.name || 'Documento PDF'}
-                            className="w-full h-full"
-                        />
-                    </div>
+                    <PdfCanvasViewer url={article.pdf.url} title={article.pdf.name} />
                 </div>
             )}
         </SectionWrapper >
